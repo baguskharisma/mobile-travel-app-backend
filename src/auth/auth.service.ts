@@ -21,8 +21,11 @@ export class AuthService {
     const { email, password } = loginDto;
 
     // Find user by email
-    const user = await this.prisma.user.findUnique({
-      where: { email },
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        deletedAt: null, // Filter out soft-deleted users
+      },
       include: {
         admin: true,
         driver: true,

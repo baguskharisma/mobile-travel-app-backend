@@ -26,8 +26,11 @@ export class JwtRefreshStrategy extends PassportStrategy(
     }
 
     // Get user from database
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: payload.sub,
+        deletedAt: null, // Filter out soft-deleted users
+      },
       include: {
         admin: true,
         driver: true,

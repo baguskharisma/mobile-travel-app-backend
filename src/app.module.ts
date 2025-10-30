@@ -7,6 +7,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
+import { AdminsModule } from './modules/admins/admins.module';
+import { CustomersModule } from './modules/customers/customers.module';
+import { DriversModule } from './modules/drivers/drivers.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -32,6 +35,11 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
     // Authentication
     AuthModule,
+
+    // Modules
+    AdminsModule,
+    CustomersModule,
+    DriversModule,
   ],
   controllers: [AppController],
   providers: [

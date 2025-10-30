@@ -35,6 +35,7 @@ model User {
   password      String
   role          UserRole
   status        UserStatus  @default(ACTIVE)
+  deletedAt     DateTime?   // Soft delete timestamp
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -45,6 +46,7 @@ model User {
 
   @@index([email])
   @@index([role])
+  @@index([deletedAt])
 }
 
 model Admin {
