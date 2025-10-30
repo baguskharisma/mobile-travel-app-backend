@@ -11,6 +11,8 @@ import { AdminsModule } from './modules/admins/admins.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { DriversModule } from './modules/drivers/drivers.module';
 import { CoinModule } from './modules/coin/coin.module';
+import { RoutesModule } from './modules/routes/routes.module';
+import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -42,6 +44,8 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     CustomersModule,
     DriversModule,
     CoinModule,
+    RoutesModule,
+    VehiclesModule,
   ],
   controllers: [AppController],
   providers: [
