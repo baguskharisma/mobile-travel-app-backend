@@ -5,11 +5,404 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ==================== USER MANAGEMENT ====================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  DRIVER
+  CUSTOMER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String?     @unique
+  password      String
+  role          UserRole
+  status        UserStatus  @default(ACTIVE)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  admin         Admin?
+  driver        Driver?
+  customer      Customer?
+
+  @@index([email])
+  @@index([role])
+}
+
+model Admin {
+  id              String            @id @default(uuid())
+  userId          String            @unique
+  name            String
+  phone           String            @unique
+  coinBalance     Int               @default(0) // Saldo coin admin
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coinRequests    CoinRequest[]     // Request topup dari admin
+  coinTransactions CoinTransaction[] // Histori transaksi coin
+  ticketBookings  Ticket[]          // Tiket yang dibuat oleh admin
+  travelDocuments TravelDocument[]  // Surat jalan yang diterbitkan
+
+  @@index([userId])
+}
+
+model Customer {
+  id            String      @id @default(uuid())
+  userId        String      @unique
+  name          String
+  phone         String      @unique
+  address       String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tickets       Ticket[]
+
+  @@index([userId])
+  @@index([phone])
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ON_TRIP
+  OFF_DUTY
+}
+
+model Driver {
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  name            String
+  phone           String        @unique
+  licenseNumber   String?       // Nomor SIM
+  address         String?
+  status          DriverStatus  @default(AVAILABLE)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedules       Schedule[]    // Jadwal yang di-assign ke driver
+  tripLogs        TripLog[]     // Log perjalanan driver
+
+  @@index([userId])
+  @@index([phone])
+  @@index([status])
+}
+
+// ==================== COIN SYSTEM ====================
+
+enum CoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model CoinRequest {
+  id              String              @id @default(uuid())
+  adminId         String
+  amount          Int                 // Jumlah coin yang diminta
+  status          CoinRequestStatus   @default(PENDING)
+  notes           String?             // Catatan dari admin
+  approvedBy      String?             // Super admin yang approve
+  approvedAt      DateTime?
+  rejectedReason  String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  // Relations
+  admin           Admin               @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum CoinTransactionType {
+  TOP_UP          // Penambahan coin dari super admin
+  DEDUCTION       // Pengurangan coin
+  REFUND          // Pengembalian coin
+}
+
+enum CoinTransactionReason {
+  TOP_UP_APPROVED   // Top up disetujui super admin
+  TICKET_BOOKING    // Pemesanan tiket (10k per penumpang)
+  TRAVEL_DOCUMENT   // Penerbitan surat jalan (10k per surat)
+  TICKET_CANCELLATION // Refund dari pembatalan tiket
+}
+
+model CoinTransaction {
+  id              String                  @id @default(uuid())
+  adminId         String
+  type            CoinTransactionType
+  reason          CoinTransactionReason
+  amount          Int                     // Positif untuk penambahan, negatif untuk pengurangan
+  balanceBefore   Int                     // Saldo sebelum transaksi
+  balanceAfter    Int                     // Saldo setelah transaksi
+  referenceId     String?                 // ID referensi (ticketId, travelDocumentId, coinRequestId)
+  referenceType   String?                 // Tipe referensi (ticket, travel_document, coin_request)
+  notes           String?
+  createdBy       String?                 // User yang melakukan transaksi
+  createdAt       DateTime                @default(now())
+
+  // Relations
+  admin           Admin                   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([type])
+  @@index([referenceId])
+}
+
+// ==================== TRAVEL ROUTES & SCHEDULES ====================
+
+model Route {
+  id              String      @id @default(uuid())
+  routeCode       String      @unique // Contoh: JKT-BDG-001
+  origin          String      // Kota asal
+  destination     String      // Kota tujuan
+  distance        Float?      // Jarak dalam km
+  estimatedDuration Int?      // Estimasi durasi dalam menit
+  basePrice       Int         // Harga dasar
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  schedules       Schedule[]
+
+  @@index([routeCode])
+  @@index([origin, destination])
+  @@index([isActive])
+}
+
+enum VehicleType {
+  EKSEKUTIF
+  REGULAR
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  RETIRED
+}
+
+model Vehicle {
+  id              String          @id @default(uuid())
+  vehicleNumber   String          @unique // Nomor plat kendaraan
+  type            VehicleType
+  brand           String?
+  model           String?
+  capacity        Int             // Kapasitas penumpang
+  status          VehicleStatus   @default(AVAILABLE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  schedules       Schedule[]
+  travelDocuments TravelDocument[]
+
+  @@index([vehicleNumber])
+  @@index([status])
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  DEPARTED
+  ARRIVED
+  CANCELLED
+}
+
+model Schedule {
+  id              String          @id @default(uuid())
+  routeId         String
+  vehicleId       String
+  driverId        String?         // Driver yang di-assign
+  departureTime   DateTime
+  arrivalTime     DateTime?
+  price           Int             // Harga tiket untuk jadwal ini
+  availableSeats  Int             // Kursi tersedia
+  status          ScheduleStatus  @default(SCHEDULED)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  route           Route           @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  vehicle         Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  driver          Driver?         @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  tickets         Ticket[]
+  travelDocuments TravelDocument[]
+  tripLogs        TripLog[]       // Log perjalanan
+
+  @@index([routeId])
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([departureTime])
+  @@index([status])
+}
+
+// ==================== TICKET BOOKING ====================
+
+enum TicketStatus {
+  PENDING         // Menunggu pembayaran
+  CONFIRMED       // Sudah dibayar/dikonfirmasi
+  CANCELLED       // Dibatalkan
+  COMPLETED       // Perjalanan selesai
+  REFUNDED        // Sudah direfund
+}
+
+enum BookingSource {
+  CUSTOMER_APP    // Dari aplikasi customer (Flutter)
+  ADMIN_PANEL     // Dari admin panel (Next.js)
+}
+
+model Ticket {
+  id              String          @id @default(uuid())
+  ticketNumber    String          @unique // Nomor tiket unik
+  scheduleId      String
+  customerId      String?         // Null jika dipesan oleh admin untuk orang lain
+  adminId         String?         // Admin yang memproses (jika dari admin panel)
+  bookingSource   BookingSource
+  totalPassengers Int             // Jumlah penumpang
+  totalPrice      Int             // Total harga
+  status          TicketStatus    @default(PENDING)
+  bookingDate     DateTime        @default(now())
+  paymentDate     DateTime?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  schedule        Schedule        @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  customer        Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  admin           Admin?          @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  passengers      Passenger[]
+
+  @@index([ticketNumber])
+  @@index([scheduleId])
+  @@index([customerId])
+  @@index([adminId])
+  @@index([status])
+  @@index([bookingDate])
+}
+
+model Passenger {
+  id              String      @id @default(uuid())
+  ticketId        String
+  name            String
+  identityNumber  String?     // NIK/KTP/Passport
+  phone           String?
+  seatNumber      String?     // Nomor kursi
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  ticket          Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+// ==================== TRAVEL DOCUMENT (SURAT JALAN) ====================
+
+enum TravelDocumentStatus {
+  DRAFT
+  ISSUED
+  CANCELLED
+}
+
+model TravelDocument {
+  id                  String                @id @default(uuid())
+  documentNumber      String                @unique // Nomor surat jalan
+  scheduleId          String
+  vehicleId           String
+  adminId             String                // Admin yang menerbitkan
+  driverName          String
+  driverPhone         String
+  totalPassengers     Int
+  departureDate       DateTime
+  status              TravelDocumentStatus  @default(DRAFT)
+  issuedAt            DateTime?             // Kapan diterbitkan
+  notes               String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  // Relations
+  schedule            Schedule              @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  vehicle             Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  admin               Admin                 @relation(fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([documentNumber])
+  @@index([scheduleId])
+  @@index([vehicleId])
+  @@index([adminId])
+  @@index([status])
+  @@index([departureDate])
+}
+
+// ==================== TRIP LOG (DRIVER TRACKING) ====================
+
+enum TripStatus {
+  ASSIGNED        // Trip sudah di-assign ke driver
+  READY           // Driver ready untuk berangkat
+  DEPARTED        // Trip sudah berangkat
+  IN_TRANSIT      // Dalam perjalanan
+  REST_STOP       // Berhenti istirahat
+  ARRIVED         // Sudah sampai tujuan
+  COMPLETED       // Trip selesai
+  CANCELLED       // Trip dibatalkan
+}
+
+model TripLog {
+  id              String      @id @default(uuid())
+  scheduleId      String
+  driverId        String
+  status          TripStatus
+  location        String?     // Lokasi saat update (opsional)
+  latitude        Float?      // GPS latitude
+  longitude       Float?      // GPS longitude
+  notes           String?     // Catatan dari driver
+  timestamp       DateTime    @default(now())
+
+  // Relations
+  schedule        Schedule    @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  driver          Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([driverId])
+  @@index([status])
+  @@index([timestamp])
+}
+
+// ==================== SYSTEM CONFIGURATION ====================
+
+model SystemConfig {
+  id              String      @id @default(uuid())
+  key             String      @unique
+  value           String
+  description     String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([key])
 }
