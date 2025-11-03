@@ -15,7 +15,7 @@ import {
   CoinRequestStatus,
   CoinTransactionReason,
   UserRole,
-} from '../../../../generated/prisma';
+} from '@prisma/client';
 import { CoinTransactionService } from './coin-transaction.service';
 
 @Injectable()

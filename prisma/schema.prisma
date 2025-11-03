@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -35,6 +34,7 @@ model User {
   password      String
   role          UserRole
   status        UserStatus  @default(ACTIVE)
+  lastLoginAt   DateTime?
   deletedAt     DateTime?   // Soft delete timestamp
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -57,6 +57,7 @@ model Admin {
   coinBalance     Int               @default(0) // Saldo coin admin
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime? // Soft delete
 
   // Relations
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -66,6 +67,7 @@ model Admin {
   travelDocuments TravelDocument[]  // Surat jalan yang diterbitkan
 
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model Customer {
@@ -76,6 +78,7 @@ model Customer {
   address       String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
 
   // Relations
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -83,6 +86,7 @@ model Customer {
 
   @@index([userId])
   @@index([phone])
+  @@index([deletedAt])
 }
 
 enum DriverStatus {
@@ -101,6 +105,7 @@ model Driver {
   status          DriverStatus  @default(AVAILABLE)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
 
   // Relations
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -110,6 +115,7 @@ model Driver {
   @@index([userId])
   @@index([phone])
   @@index([status])
+  @@index([deletedAt])
 }
 
 // ==================== COIN SYSTEM ====================
@@ -128,6 +134,8 @@ model CoinRequest {
   notes           String?             // Catatan dari admin
   approvedBy      String?             // Super admin yang approve
   approvedAt      DateTime?
+  rejectedBy      String?
+  rejectedAt      DateTime?
   rejectedReason  String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
@@ -137,6 +145,8 @@ model CoinRequest {
 
   @@index([adminId])
   @@index([status])
+  @@index([rejectedBy])
+  @@index([rejectedAt])
   @@index([createdAt])
 }
 
@@ -246,6 +256,9 @@ model Schedule {
   price           Int             // Harga tiket untuk jadwal ini
   availableSeats  Int             // Kursi tersedia
   status          ScheduleStatus  @default(SCHEDULED)
+  cancelledAt     DateTime?
+  cancelledBy     String?
+  cancelReason    String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -262,6 +275,7 @@ model Schedule {
   @@index([driverId])
   @@index([departureTime])
   @@index([status])
+  @@index([cancelledAt])
 }
 
 // ==================== TICKET BOOKING ====================
@@ -292,6 +306,9 @@ model Ticket {
   bookingDate     DateTime        @default(now())
   paymentDate     DateTime?
   notes           String?
+  cancelledAt     DateTime?
+  cancelledBy     String?
+  cancelReason    String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -307,6 +324,8 @@ model Ticket {
   @@index([adminId])
   @@index([status])
   @@index([bookingDate])
+  @@index([cancelledAt])
+  @@index([cancelledBy])
 }
 
 model Passenger {
@@ -346,6 +365,9 @@ model TravelDocument {
   status              TravelDocumentStatus  @default(DRAFT)
   issuedAt            DateTime?             // Kapan diterbitkan
   notes               String?
+  cancelledAt         DateTime?
+  cancelledBy         String?
+  cancelReason        String?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
@@ -360,6 +382,7 @@ model TravelDocument {
   @@index([adminId])
   @@index([status])
   @@index([departureDate])
+  @@index([cancelledAt])
 }
 
 // ==================== TRIP LOG (DRIVER TRACKING) ====================

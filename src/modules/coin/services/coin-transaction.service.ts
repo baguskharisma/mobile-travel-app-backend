@@ -4,7 +4,7 @@ import {
   CoinTransactionType,
   CoinTransactionReason,
   Prisma,
-} from '../../../../generated/prisma';
+} from '@prisma/client';
 import { QueryCoinTransactionsDto } from '../dto';
 
 @Injectable()
