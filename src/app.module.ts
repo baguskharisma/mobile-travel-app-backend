@@ -14,6 +14,7 @@ import { CoinModule } from './modules/coin/coin.module';
 import { RoutesModule } from './modules/routes/routes.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -48,6 +49,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     RoutesModule,
     VehiclesModule,
     SchedulesModule,
+    TicketsModule,
   ],
   controllers: [AppController],
   providers: [

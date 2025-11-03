@@ -1,4 +1,4 @@
-import { UserRole, UserStatus } from '../../../generated/prisma';
+import { UserRole, UserStatus } from '@prisma/client';
 
 export class AuthResponseDto {
   accessToken: string;

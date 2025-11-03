@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAdminDto, QueryAdminsDto, UpdateAdminDto, UpdateAdminStatusDto } from './dto';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class AdminsService {

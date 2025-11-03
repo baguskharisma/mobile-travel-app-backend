@@ -13,7 +13,7 @@ import {
 import { AdminsService } from './admins.service';
 import { CreateAdminDto, QueryAdminsDto, UpdateAdminDto, UpdateAdminStatusDto } from './dto';
 import { Roles } from '../../auth/decorators';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Controller('admins')
 @Roles(UserRole.SUPER_ADMIN)

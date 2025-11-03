@@ -1,6 +1,6 @@
 import { IsOptional, IsInt, Min, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CoinRequestStatus } from '../../../../generated/prisma';
+import { CoinRequestStatus } from '@prisma/client';
 
 export class QueryCoinRequestsDto {
   @IsOptional()

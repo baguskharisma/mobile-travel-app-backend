@@ -3,7 +3,7 @@ import { CoinTransactionService } from './services/coin-transaction.service';
 import { QueryCoinTransactionsDto } from './dto';
 import { Roles, CurrentUser } from '../../auth/decorators';
 import type { CurrentUserType } from '../../auth/decorators';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Controller('coin-transactions')
 export class CoinTransactionController {

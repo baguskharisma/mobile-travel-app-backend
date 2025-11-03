@@ -15,7 +15,7 @@ import {
   ScheduleStatus,
   DriverStatus,
   VehicleStatus,
-} from '../../../generated/prisma';
+} from '@prisma/client';
 
 @Injectable()
 export class SchedulesService {

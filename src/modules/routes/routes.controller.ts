@@ -13,7 +13,7 @@ import {
 import { RoutesService } from './routes.service';
 import { CreateRouteDto, UpdateRouteDto, QueryRoutesDto } from './dto';
 import { Roles } from '../../auth/decorators';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Controller('routes')
 export class RoutesController {

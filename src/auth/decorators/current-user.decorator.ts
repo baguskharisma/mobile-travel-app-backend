@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserRole, UserStatus } from '../../../generated/prisma';
+import { UserRole, UserStatus } from '@prisma/client';
 
 export interface CurrentUserType {
   id: string;

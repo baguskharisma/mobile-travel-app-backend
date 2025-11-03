@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty } from 'class-validator';
-import { VehicleStatus } from '../../../../generated/prisma';
+import { VehicleStatus } from '@prisma/client';
 
 export class UpdateVehicleStatusDto {
   @IsEnum(VehicleStatus)

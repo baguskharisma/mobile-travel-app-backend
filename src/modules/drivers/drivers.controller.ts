@@ -12,7 +12,7 @@ import {
 import { DriversService } from './drivers.service';
 import { CreateDriverDto, QueryDriversDto, UpdateDriverDto, UpdateDriverStatusDto } from './dto';
 import { Roles } from '../../auth/decorators';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Controller('drivers')
 @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)

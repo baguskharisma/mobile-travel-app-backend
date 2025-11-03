@@ -11,7 +11,7 @@ import {
   UpdateVehicleStatusDto,
   QueryVehiclesDto,
 } from './dto';
-import { VehicleStatus } from '../../../generated/prisma';
+import { VehicleStatus } from '@prisma/client';
 
 @Injectable()
 export class VehiclesService {

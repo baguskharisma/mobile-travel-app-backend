@@ -18,7 +18,7 @@ import {
   QueryVehiclesDto,
 } from './dto';
 import { Roles } from '../../auth/decorators';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Controller('vehicles')
 export class VehiclesController {

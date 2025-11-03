@@ -18,7 +18,7 @@ import {
   QuerySchedulesDto,
 } from './dto';
 import { Roles } from '../../auth/decorators';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Controller('schedules')
 export class SchedulesController {

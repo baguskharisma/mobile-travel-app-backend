@@ -1,8 +1,8 @@
 import { IsOptional, IsInt, Min, IsEnum, IsString, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ScheduleStatus } from '@prisma/client';
+import { TicketStatus, BookingSource } from '@prisma/client';
 
-export class QuerySchedulesDto {
+export class QueryTicketsDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -17,27 +17,27 @@ export class QuerySchedulesDto {
 
   @IsOptional()
   @IsString()
-  routeId?: string;
+  scheduleId?: string;
 
   @IsOptional()
   @IsString()
-  vehicleId?: string;
+  customerId?: string;
 
   @IsOptional()
   @IsString()
-  driverId?: string;
+  adminId?: string;
 
   @IsOptional()
-  @IsEnum(ScheduleStatus)
-  status?: ScheduleStatus;
+  @IsEnum(TicketStatus)
+  status?: TicketStatus;
+
+  @IsOptional()
+  @IsEnum(BookingSource)
+  bookingSource?: BookingSource;
 
   @IsOptional()
   @IsString()
-  origin?: string;
-
-  @IsOptional()
-  @IsString()
-  destination?: string;
+  search?: string; // Search by ticket number or passenger name
 
   @IsOptional()
   @IsDateString()

@@ -1,6 +1,6 @@
 import { IsOptional, IsInt, Min, IsEnum, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { DriverStatus, UserStatus } from '../../../../generated/prisma';
+import { DriverStatus, UserStatus } from '@prisma/client';
 
 export class QueryDriversDto {
   @IsOptional()

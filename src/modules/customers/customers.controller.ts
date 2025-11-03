@@ -9,7 +9,7 @@ import {
 import { CustomersService } from './customers.service';
 import { QueryCustomersDto, UpdateCustomerDto } from './dto';
 import { Roles } from '../../auth/decorators';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Controller('customers')
 @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)

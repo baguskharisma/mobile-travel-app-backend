@@ -1,4 +1,4 @@
-import { DriverStatus, UserStatus } from '../../../../generated/prisma';
+import { DriverStatus, UserStatus } from '@prisma/client';
 
 export class DriverResponseDto {
   id: string;

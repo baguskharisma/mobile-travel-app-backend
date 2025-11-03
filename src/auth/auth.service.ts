@@ -8,7 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto, AuthResponseDto } from './dto';
 import { JwtPayload } from './types/jwt-payload.type';
-import { UserRole } from '../../generated/prisma';
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class AuthService {

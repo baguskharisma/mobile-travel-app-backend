@@ -1,6 +1,6 @@
 import { IsOptional, IsInt, Min, IsEnum, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { VehicleType, VehicleStatus } from '../../../../generated/prisma';
+import { VehicleType, VehicleStatus } from '@prisma/client';
 
 export class QueryVehiclesDto {
   @IsOptional()

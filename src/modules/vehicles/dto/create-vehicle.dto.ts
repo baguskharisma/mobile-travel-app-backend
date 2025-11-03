@@ -7,7 +7,7 @@ import {
   Min,
   Matches,
 } from 'class-validator';
-import { VehicleType } from '../../../../generated/prisma';
+import { VehicleType } from '@prisma/client';
 
 export class CreateVehicleDto {
   @IsString()
