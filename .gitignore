@@ -58,3 +58,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /generated/prisma
 
 src/modules/coin/INTEGRATION_GUIDE.md
+docs/QUICK_REFERENCE.md
