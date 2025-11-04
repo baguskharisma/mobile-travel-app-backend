@@ -15,6 +15,9 @@ import { RoutesModule } from './modules/routes/routes.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
 import { SchedulesModule } from './modules/schedules/schedules.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { TravelDocumentsModule } from './modules/travel-documents/travel-documents.module';
+import { TripLogsModule } from './modules/trip-logs/trip-logs.module';
+import { DriverPanelModule } from './modules/driver-panel/driver-panel.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -50,6 +53,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     VehiclesModule,
     SchedulesModule,
     TicketsModule,
+    TravelDocumentsModule,
+    TripLogsModule,
+    DriverPanelModule,
   ],
   controllers: [AppController],
   providers: [
