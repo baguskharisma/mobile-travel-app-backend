@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString, MinLength, Matches } from 'class-validator';
 export class LoginDto {
   @IsString({ message: 'Phone must be a string' })
   @IsNotEmpty({ message: 'Phone is required' })
-  @Matches(/^(\+62|62|0)[0-9]{9,12}$/, {
+  @Matches(/^(\+62|62|0)?8[0-9]{8,11}$/, {
     message: 'Phone must be a valid Indonesian phone number',
   })
   phone: string;
