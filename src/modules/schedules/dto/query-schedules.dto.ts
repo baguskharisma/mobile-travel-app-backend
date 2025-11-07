@@ -2,6 +2,13 @@ import { IsOptional, IsInt, Min, IsEnum, IsString, IsDateString } from 'class-va
 import { Type } from 'class-transformer';
 import { ScheduleStatus } from '@prisma/client';
 
+export enum ScheduleSortBy {
+  NEAREST = 'nearest',        // Terdekat - berdasarkan waktu keberangkatan terdekat
+  FARTHEST = 'farthest',      // Terjauh - berdasarkan waktu keberangkatan terjauh
+  CHEAPEST = 'cheapest',      // Termurah - berdasarkan harga terendah
+  MOST_EXPENSIVE = 'expensive', // Termahal - berdasarkan harga tertinggi
+}
+
 export class QuerySchedulesDto {
   @IsOptional()
   @Type(() => Number)
@@ -46,4 +53,8 @@ export class QuerySchedulesDto {
   @IsOptional()
   @IsDateString()
   dateTo?: string;
+
+  @IsOptional()
+  @IsEnum(ScheduleSortBy)
+  sortBy?: ScheduleSortBy;
 }

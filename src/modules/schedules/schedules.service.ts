@@ -11,6 +11,7 @@ import {
   UpdateScheduleDto,
   AssignDriverDto,
   QuerySchedulesDto,
+  ScheduleSortBy,
 } from './dto';
 import {
   ScheduleStatus,
@@ -313,6 +314,7 @@ export class SchedulesService {
       destination,
       dateFrom,
       dateTo,
+      sortBy = ScheduleSortBy.NEAREST,
     } = query;
     const skip = (page - 1) * limit;
 
@@ -355,14 +357,31 @@ export class SchedulesService {
       }
     }
 
+    // Build orderBy clause based on sortBy parameter
+    let orderBy: any;
+    switch (sortBy) {
+      case ScheduleSortBy.NEAREST:
+        orderBy = { departureTime: 'asc' };
+        break;
+      case ScheduleSortBy.FARTHEST:
+        orderBy = { departureTime: 'desc' };
+        break;
+      case ScheduleSortBy.CHEAPEST:
+        orderBy = { price: 'asc' };
+        break;
+      case ScheduleSortBy.MOST_EXPENSIVE:
+        orderBy = { price: 'desc' };
+        break;
+      default:
+        orderBy = { departureTime: 'asc' };
+    }
+
     const [schedules, total] = await Promise.all([
       this.prisma.schedule.findMany({
         where,
         skip,
         take: limit,
-        orderBy: {
-          departureTime: 'asc',
-        },
+        orderBy,
         include: {
           route: true,
           vehicle: {
