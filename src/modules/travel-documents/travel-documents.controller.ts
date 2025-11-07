@@ -17,7 +17,7 @@ import { TravelDocumentsService } from './travel-documents.service';
 import { CreateTravelDocumentDto, QueryTravelDocumentsDto } from './dto';
 import { Roles, CurrentUser } from '../../auth/decorators';
 import type { CurrentUserType } from '../../auth/decorators';
-import { UserRole } from '../../../generated/prisma';
+import { UserRole } from '@prisma/client';
 import { TravelDocumentPdfGenerator } from './utils/pdf-generator';
 
 @Controller('travel-documents')

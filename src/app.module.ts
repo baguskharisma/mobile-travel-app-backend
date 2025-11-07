@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ValidationPipe } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,6 +20,9 @@ import { TicketsModule } from './modules/tickets/tickets.module';
 import { TravelDocumentsModule } from './modules/travel-documents/travel-documents.module';
 import { TripLogsModule } from './modules/trip-logs/trip-logs.module';
 import { DriverPanelModule } from './modules/driver-panel/driver-panel.module';
+import { PaymentProofsModule } from './modules/payment-proofs/payment-proofs.module';
+import { UploadModule } from './common/upload/upload.module';
+import { WebsocketModule } from './websocket/websocket.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -38,8 +43,18 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
       },
     ]),
 
+    // Serve Static Files
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'src', 'uploads'),
+      serveRoot: '/uploads',
+    }),
+
     // Database
     PrismaModule,
+
+    // Common Modules
+    UploadModule,
+    WebsocketModule,
 
     // Authentication
     AuthModule,
@@ -56,6 +71,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     TravelDocumentsModule,
     TripLogsModule,
     DriverPanelModule,
+    PaymentProofsModule,
   ],
   controllers: [AppController],
   providers: [

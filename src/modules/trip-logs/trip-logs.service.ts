@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTripLogDto, QueryTripLogsDto } from './dto';
-import { ScheduleStatus } from '../../../generated/prisma';
+import { ScheduleStatus } from '@prisma/client';
 
 @Injectable()
 export class TripLogsService {

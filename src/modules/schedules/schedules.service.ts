@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { WebsocketGateway } from '../../websocket/websocket.gateway';
 import {
   CreateScheduleDto,
   UpdateScheduleDto,
@@ -15,11 +16,15 @@ import {
   ScheduleStatus,
   DriverStatus,
   VehicleStatus,
+  TicketStatus,
 } from '@prisma/client';
 
 @Injectable()
 export class SchedulesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly websocketGateway: WebsocketGateway,
+  ) {}
 
   /**
    * Validate if driver is available for the given time period
@@ -272,6 +277,9 @@ export class SchedulesService {
         arrivalTime,
         price: createScheduleDto.price,
         availableSeats: createScheduleDto.availableSeats,
+        fuelCost: createScheduleDto.fuelCost,
+        driverWage: createScheduleDto.driverWage,
+        snackCost: createScheduleDto.snackCost,
       },
       include: {
         route: true,
@@ -676,6 +684,27 @@ export class SchedulesService {
       },
     });
 
+    // Notify driver of new trip assignment
+    if (updatedSchedule.driver) {
+      this.websocketGateway.notifyDriverAssignment(
+        updatedSchedule.driver.userId,
+        {
+          scheduleId: updatedSchedule.id,
+          route: updatedSchedule.route,
+          vehicle: updatedSchedule.vehicle,
+          departureTime: updatedSchedule.departureTime,
+          message: 'You have been assigned to a new trip',
+        },
+      );
+    }
+
+    // Broadcast schedule update to all subscribers
+    this.websocketGateway.broadcastScheduleUpdate(updatedSchedule.id, {
+      status: updatedSchedule.status,
+      driver: updatedSchedule.driver,
+      message: 'Driver assigned to schedule',
+    });
+
     return updatedSchedule;
   }
 
@@ -710,7 +739,7 @@ export class SchedulesService {
       where: {
         scheduleId: id,
         status: {
-          in: ['PENDING', 'CONFIRMED'],
+          in: [TicketStatus.PENDING_PAYMENT, TicketStatus.PENDING_APPROVAL, TicketStatus.CONFIRMED],
         },
       },
     });
@@ -735,6 +764,13 @@ export class SchedulesService {
           },
         },
       },
+    });
+
+    // Broadcast schedule cancellation to all subscribers
+    this.websocketGateway.broadcastScheduleUpdate(cancelledSchedule.id, {
+      status: ScheduleStatus.CANCELLED,
+      message: 'Schedule has been cancelled',
+      route: cancelledSchedule.route,
     });
 
     return {

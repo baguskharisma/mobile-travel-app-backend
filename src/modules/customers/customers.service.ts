@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QueryCustomersDto, UpdateCustomerDto } from './dto';
+import { UploadService } from '../../common/upload/upload.service';
+import { UploadType } from '../../common/upload/upload.config';
 
 @Injectable()
 export class CustomersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   async findAll(query: QueryCustomersDto) {
     const { page = 1, limit = 10, status, search } = query;
@@ -148,5 +153,169 @@ export class CustomersService {
     });
 
     return updatedCustomer;
+  }
+
+  async findByUserId(userId: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+
+    return customer;
+  }
+
+  async updateByUserId(userId: string, updateCustomerDto: UpdateCustomerDto) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { userId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+
+    return this.update(customer.id, updateCustomerDto);
+  }
+
+  async uploadProfileImage(userId: string, file: Express.Multer.File) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { userId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+
+    return this.uploadImage(customer.id, file);
+  }
+
+  async deleteProfileImage(userId: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { userId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer profile not found');
+    }
+
+    return this.deleteImage(customer.id);
+  }
+
+  async uploadImage(id: string, file: Express.Multer.File) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    // Delete old image if exists
+    if (customer.profileImageUrl) {
+      const oldPath = this.uploadService.getPathFromUrl(customer.profileImageUrl);
+      if (oldPath) {
+        await this.uploadService.deleteFile(oldPath).catch(() => {});
+      }
+    }
+
+    // Process uploaded image
+    const processedImage = await this.uploadService.processUploadedFile(
+      file,
+      UploadType.PROFILE,
+      {
+        optimize: true,
+        generateThumbnail: true,
+        maxWidth: 800,
+        maxHeight: 800,
+      },
+    );
+
+    // Update customer with new image URL
+    const updated = await this.prisma.customer.update({
+      where: { id },
+      data: {
+        profileImageUrl: processedImage.url,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Profile image uploaded successfully',
+      imageUrl: processedImage.url,
+      thumbnailUrl: processedImage.thumbnailUrl,
+      customer: updated,
+    };
+  }
+
+  async deleteImage(id: string) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id },
+    });
+
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+
+    if (!customer.profileImageUrl) {
+      throw new BadRequestException('Customer has no profile image');
+    }
+
+    // Delete image file
+    const imagePath = this.uploadService.getPathFromUrl(customer.profileImageUrl);
+    if (imagePath) {
+      await this.uploadService.deleteFile(imagePath).catch(() => {});
+
+      // Also delete thumbnail if exists
+      const filename = this.uploadService.getFilenameFromUrl(customer.profileImageUrl);
+      if (filename) {
+        const thumbnailPath = imagePath.replace(filename, `thumb-${filename}`);
+        await this.uploadService.deleteFile(thumbnailPath).catch(() => {});
+      }
+    }
+
+    // Update customer
+    const updated = await this.prisma.customer.update({
+      where: { id },
+      data: {
+        profileImageUrl: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Profile image deleted successfully',
+      customer: updated,
+    };
   }
 }

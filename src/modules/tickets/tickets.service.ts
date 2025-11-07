@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CoinTransactionService } from '../coin/services/coin-transaction.service';
+import { WebsocketGateway } from '../../websocket/websocket.gateway';
 import { CreateTicketDto, QueryTicketsDto } from './dto';
 import {
   TicketStatus,
@@ -20,6 +21,7 @@ export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly coinTransactionService: CoinTransactionService,
+    private readonly websocketGateway: WebsocketGateway,
   ) {}
 
   /**
@@ -112,7 +114,7 @@ export class TicketsService {
           seatNumber: { in: seatNumbers as string[] },
           ticket: {
             scheduleId: createTicketDto.scheduleId,
-            status: { in: [TicketStatus.PENDING, TicketStatus.CONFIRMED] },
+            status: { in: [TicketStatus.PENDING_PAYMENT, TicketStatus.PENDING_APPROVAL, TicketStatus.CONFIRMED] },
           },
         },
         select: { seatNumber: true },
@@ -183,10 +185,13 @@ export class TicketsService {
           customerId,
           adminId,
           bookingSource: createTicketDto.bookingSource,
+          bookerPhone: createTicketDto.bookerPhone,
+          pickupAddress: createTicketDto.pickupAddress,
+          dropoffAddress: createTicketDto.dropoffAddress,
           totalPassengers: passengerCount,
           totalPrice,
           notes: createTicketDto.notes,
-          status: TicketStatus.PENDING,
+          status: TicketStatus.CONFIRMED, // Admin bookings are auto-confirmed
         },
         include: {
           schedule: {
@@ -477,7 +482,7 @@ export class TicketsService {
       throw new NotFoundException('Ticket not found');
     }
 
-    if (ticket.status !== TicketStatus.PENDING) {
+    if (ticket.status !== TicketStatus.PENDING_PAYMENT && ticket.status !== TicketStatus.PENDING_APPROVAL) {
       throw new BadRequestException(
         `Cannot confirm ticket with status: ${ticket.status}`,
       );
@@ -524,6 +529,24 @@ export class TicketsService {
         },
       },
     });
+
+    // Notify customer of ticket confirmation
+    if (confirmedTicket.customer && confirmedTicket.customerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: confirmedTicket.customerId },
+        select: { userId: true },
+      });
+
+      if (customer) {
+        this.websocketGateway.broadcastTicketUpdate(customer.userId, {
+          ticketId: confirmedTicket.id,
+          ticketNumber: confirmedTicket.ticketNumber,
+          status: TicketStatus.CONFIRMED,
+          schedule: confirmedTicket.schedule,
+          message: 'Your ticket has been confirmed',
+        });
+      }
+    }
 
     return confirmedTicket;
   }

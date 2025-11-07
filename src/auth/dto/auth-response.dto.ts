@@ -5,6 +5,7 @@ export class AuthResponseDto {
   refreshToken: string;
   user: {
     id: string;
+    phone: string;
     email: string | null;
     role: UserRole;
     status: UserStatus;

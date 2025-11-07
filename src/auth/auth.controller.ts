@@ -49,6 +49,7 @@ export class AuthController {
   getProfile(@CurrentUser() user: CurrentUserType) {
     return {
       id: user.id,
+      phone: user.phone,
       email: user.email,
       role: user.role,
       status: user.status,

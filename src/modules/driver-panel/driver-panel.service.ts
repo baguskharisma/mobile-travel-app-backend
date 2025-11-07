@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import { TripLogsService } from '../trip-logs/trip-logs.service';
 import { UpdateTripStatusDto } from './dto';
-import { ScheduleStatus } from '../../../generated/prisma';
+import { ScheduleStatus } from '@prisma/client';
 
 @Injectable()
 export class DriverPanelService {

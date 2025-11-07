@@ -18,12 +18,12 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
-    const { email, password } = loginDto;
+    const { phone, password } = loginDto;
 
-    // Find user by email
+    // Find user by phone
     const user = await this.prisma.user.findFirst({
       where: {
-        email,
+        phone,
         deletedAt: null, // Filter out soft-deleted users
       },
       include: {
@@ -34,7 +34,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid phone number or password');
     }
 
     // Check if user is active
@@ -45,11 +45,11 @@ export class AuthService {
     // Verify password
     const isPasswordValid = await this.verifyPassword(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid phone number or password');
     }
 
     // Generate tokens
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.phone, user.role);
 
     // Get profile based on role
     const profile = user.admin || user.driver || user.customer || null;
@@ -58,6 +58,7 @@ export class AuthService {
       ...tokens,
       user: {
         id: user.id,
+        phone: user.phone,
         email: user.email,
         role: user.role,
         status: user.status,
@@ -75,22 +76,24 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const { email, password, name, phone, address } = registerDto;
 
-    // Check if email already exists
-    const existingUserByEmail = await this.prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUserByEmail) {
-      throw new ConflictException('Email already exists');
-    }
-
-    // Check if phone already exists
-    const existingUserByPhone = await this.prisma.customer.findUnique({
+    // Check if phone already exists in User table
+    const existingUserByPhone = await this.prisma.user.findUnique({
       where: { phone },
     });
 
     if (existingUserByPhone) {
       throw new ConflictException('Phone number already exists');
+    }
+
+    // Check if email already exists (if provided)
+    if (email) {
+      const existingUserByEmail = await this.prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUserByEmail) {
+        throw new ConflictException('Email already exists');
+      }
     }
 
     // Hash password
@@ -100,7 +103,8 @@ export class AuthService {
     const user = await this.prisma.$transaction(async (prisma) => {
       const newUser = await prisma.user.create({
         data: {
-          email,
+          phone,
+          email: email || null,
           password: hashedPassword,
           role: UserRole.CUSTOMER,
           status: 'ACTIVE',
@@ -123,12 +127,13 @@ export class AuthService {
     });
 
     // Generate tokens
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.phone, user.role);
 
     return {
       ...tokens,
       user: {
         id: user.id,
+        phone: user.phone,
         email: user.email,
         role: user.role,
         status: user.status,
@@ -161,7 +166,7 @@ export class AuthService {
     }
 
     // Generate new tokens
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.phone, user.role);
 
     // Get profile based on role
     const profile = user.admin || user.driver || user.customer || null;
@@ -170,6 +175,7 @@ export class AuthService {
       ...tokens,
       user: {
         id: user.id,
+        phone: user.phone,
         email: user.email,
         role: user.role,
         status: user.status,
@@ -186,19 +192,19 @@ export class AuthService {
 
   private async generateTokens(
     userId: string,
-    email: string | null,
+    phone: string,
     role: UserRole,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const accessPayload: JwtPayload = {
       sub: userId,
-      email,
+      phone,
       role,
       type: 'access',
     };
 
     const refreshPayload: JwtPayload = {
       sub: userId,
-      email,
+      phone,
       role,
       type: 'refresh',
     };
@@ -242,9 +248,9 @@ export class AuthService {
     return bcrypt.compare(password, hashedPassword);
   }
 
-  async validateUser(email: string, password: string): Promise<any> {
+  async validateUser(phone: string, password: string): Promise<any> {
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: { phone },
       include: {
         admin: true,
         driver: true,
@@ -265,6 +271,7 @@ export class AuthService {
 
     return {
       id: user.id,
+      phone: user.phone,
       email: user.email,
       role: user.role,
       status: user.status,

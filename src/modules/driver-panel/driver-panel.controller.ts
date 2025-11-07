@@ -12,7 +12,7 @@ import { DriverPanelService } from './driver-panel.service';
 import { UpdateTripStatusDto } from './dto';
 import { Roles, CurrentUser } from '../../auth/decorators';
 import type { CurrentUserType } from '../../auth/decorators';
-import { UserRole, ScheduleStatus } from '../../../generated/prisma';
+import { UserRole, ScheduleStatus } from '@prisma/client';
 
 @Controller('driver')
 @Roles(UserRole.DRIVER)

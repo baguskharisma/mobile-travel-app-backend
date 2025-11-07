@@ -1,5 +1,5 @@
 import PDFDocument from 'pdfkit';
-import { TravelDocument, Schedule, Route, Vehicle, Admin } from '../../../../generated/prisma';
+import { TravelDocument, Schedule, Route, Vehicle, Admin } from '@prisma/client';
 
 interface TravelDocumentWithRelations extends TravelDocument {
   schedule: Schedule & {

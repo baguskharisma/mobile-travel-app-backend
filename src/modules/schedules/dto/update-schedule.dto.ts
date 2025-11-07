@@ -37,4 +37,19 @@ export class UpdateScheduleDto {
   @IsInt()
   @Min(0)
   availableSeats?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  fuelCost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  driverWage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  snackCost?: number;
 }

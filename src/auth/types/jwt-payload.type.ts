@@ -2,7 +2,7 @@ import { UserRole } from '@prisma/client';
 
 export interface JwtPayload {
   sub: string; // User ID
-  email: string | null;
+  phone: string;
   role: UserRole;
   type: 'access' | 'refresh';
 }

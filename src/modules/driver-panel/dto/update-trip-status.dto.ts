@@ -5,7 +5,7 @@ import {
   IsString,
   IsNumber,
 } from 'class-validator';
-import { TripStatus } from '../../../../generated/prisma';
+import { TripStatus } from '@prisma/client';
 
 export class UpdateTripStatusDto {
   @IsEnum(TripStatus)

@@ -162,22 +162,24 @@ paths:
     post:
       tags: [Authentication]
       summary: User login
-      description: Authenticate user and receive JWT token
+      description: Authenticate user with phone number and receive JWT token
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [email, password]
+              required: [phone, password]
               properties:
-                email:
+                phone:
                   type: string
-                  format: email
-                  example: admin@example.com
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: "081234567890"
+                  description: Indonesian phone number format
                 password:
                   type: string
                   format: password
+                  minLength: 6
                   example: Admin123
       responses:
         '200':
@@ -187,19 +189,208 @@ paths:
               schema:
                 type: object
                 properties:
-                  access_token:
+                  accessToken:
+                    type: string
+                  refreshToken:
                     type: string
                   user:
                     type: object
                     properties:
                       id:
                         type: string
+                      phone:
+                        type: string
                       email:
                         type: string
+                        nullable: true
                       role:
                         $ref: '#/components/schemas/UserRole'
+                      status:
+                        $ref: '#/components/schemas/UserStatus'
+                      profile:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          phone:
+                            type: string
         '401':
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Customer registration
+      description: Register new customer account with phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, password]
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  example: John Doe
+                phone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: "081234567890"
+                  description: Indonesian phone number format
+                email:
+                  type: string
+                  format: email
+                  example: john@example.com
+                  description: Optional email address
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)'
+                  example: Customer123
+                  description: Must contain uppercase, lowercase, and number
+                address:
+                  type: string
+                  example: Jl. Sudirman No. 123, Jakarta
+                  description: Optional address
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      phone:
+                        type: string
+                      email:
+                        type: string
+                        nullable: true
+                      role:
+                        $ref: '#/components/schemas/UserRole'
+                      status:
+                        $ref: '#/components/schemas/UserStatus'
+                      profile:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          phone:
+                            type: string
+        '409':
+          description: Phone number or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      phone:
+                        type: string
+                      email:
+                        type: string
+                        nullable: true
+                      role:
+                        $ref: '#/components/schemas/UserRole'
+                      status:
+                        $ref: '#/components/schemas/UserStatus'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user profile
+      description: Retrieve authenticated user's profile information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  phone:
+                    type: string
+                  email:
+                    type: string
+                    nullable: true
+                  role:
+                    $ref: '#/components/schemas/UserRole'
+                  status:
+                    $ref: '#/components/schemas/UserStatus'
+                  profile:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      phone:
+                        type: string
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -654,6 +845,21 @@ paths:
                   type: integer
                   minimum: 1
                   example: 16
+                fuelCost:
+                  type: integer
+                  minimum: 0
+                  example: 300000
+                  description: Biaya BBM (optional)
+                driverWage:
+                  type: integer
+                  minimum: 0
+                  example: 200000
+                  description: Upah sopir (optional)
+                snackCost:
+                  type: integer
+                  minimum: 0
+                  example: 150000
+                  description: Biaya snack (optional)
       responses:
         '201':
           description: Schedule created
@@ -721,6 +927,95 @@ paths:
         '200':
           description: Upcoming schedules
 
+  /schedules/{id}:
+    get:
+      tags: [Schedules]
+      summary: Get schedule details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Schedule details
+        '404':
+          description: Schedule not found
+
+    patch:
+      tags: [Schedules]
+      summary: Update schedule
+      description: Update schedule details (cannot update if already departed)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                routeId:
+                  type: string
+                vehicleId:
+                  type: string
+                driverId:
+                  type: string
+                departureTime:
+                  type: string
+                  format: date-time
+                arrivalTime:
+                  type: string
+                  format: date-time
+                price:
+                  type: integer
+                availableSeats:
+                  type: integer
+                  minimum: 0
+                fuelCost:
+                  type: integer
+                  minimum: 0
+                  description: Biaya BBM
+                driverWage:
+                  type: integer
+                  minimum: 0
+                  description: Upah sopir
+                snackCost:
+                  type: integer
+                  minimum: 0
+                  description: Biaya snack
+      responses:
+        '200':
+          description: Schedule updated
+        '400':
+          description: Cannot update (already departed/completed)
+
+    delete:
+      tags: [Schedules]
+      summary: Delete schedule
+      description: Delete schedule (only if no tickets booked)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Schedule deleted
+        '400':
+          description: Cannot delete (has associated tickets)
+
   /schedules/{id}/assign-driver:
     patch:
       tags: [Schedules]
@@ -785,7 +1080,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [scheduleId, bookingSource, passengers]
+              required: [scheduleId, bookingSource, bookerPhone, pickupAddress, dropoffAddress, passengers]
               properties:
                 scheduleId:
                   type: string
@@ -794,6 +1089,19 @@ paths:
                   description: For admin bookings on behalf of customer
                 bookingSource:
                   $ref: '#/components/schemas/BookingSource'
+                bookerPhone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: '081234567890'
+                  description: Nomor HP pemesan (wajib)
+                pickupAddress:
+                  type: string
+                  example: Jl. Sudirman No. 123, Jakarta Pusat
+                  description: Alamat jemput (wajib)
+                dropoffAddress:
+                  type: string
+                  example: Jl. Dago No. 456, Bandung
+                  description: Alamat antar (wajib)
                 passengers:
                   type: array
                   minItems: 1

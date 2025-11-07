@@ -12,7 +12,7 @@ import {
   ScheduleStatus,
   CoinTransactionReason,
   UserRole,
-} from '../../../generated/prisma';
+} from '@prisma/client';
 
 @Injectable()
 export class TravelDocumentsService {

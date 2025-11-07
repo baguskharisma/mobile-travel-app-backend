@@ -12,10 +12,15 @@ import {
   QueryVehiclesDto,
 } from './dto';
 import { VehicleStatus } from '@prisma/client';
+import { UploadService } from '../../common/upload/upload.service';
+import { UploadType } from '../../common/upload/upload.config';
 
 @Injectable()
 export class VehiclesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   async create(createVehicleDto: CreateVehicleDto) {
     // Normalize vehicle number (remove spaces for uniqueness check)
@@ -276,6 +281,91 @@ export class VehiclesService {
 
     return {
       message: 'Vehicle deleted successfully',
+    };
+  }
+
+  async uploadImage(id: string, file: Express.Multer.File) {
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id },
+    });
+
+    if (!vehicle) {
+      throw new NotFoundException('Vehicle not found');
+    }
+
+    // Delete old image if exists
+    if (vehicle.imageUrl) {
+      const oldPath = this.uploadService.getPathFromUrl(vehicle.imageUrl);
+      if (oldPath) {
+        await this.uploadService.deleteFile(oldPath).catch(() => {});
+      }
+    }
+
+    // Process uploaded image
+    const processedImage = await this.uploadService.processUploadedFile(
+      file,
+      UploadType.VEHICLE,
+      {
+        optimize: true,
+        generateThumbnail: true,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      },
+    );
+
+    // Update vehicle with new image URL
+    const updated = await this.prisma.vehicle.update({
+      where: { id },
+      data: {
+        imageUrl: processedImage.url,
+      },
+    });
+
+    return {
+      message: 'Vehicle image uploaded successfully',
+      imageUrl: processedImage.url,
+      thumbnailUrl: processedImage.thumbnailUrl,
+      vehicle: updated,
+    };
+  }
+
+  async deleteImage(id: string) {
+    const vehicle = await this.prisma.vehicle.findUnique({
+      where: { id },
+    });
+
+    if (!vehicle) {
+      throw new NotFoundException('Vehicle not found');
+    }
+
+    if (!vehicle.imageUrl) {
+      throw new BadRequestException('Vehicle has no image');
+    }
+
+    // Delete image file
+    const imagePath = this.uploadService.getPathFromUrl(vehicle.imageUrl);
+    if (imagePath) {
+      await this.uploadService.deleteFile(imagePath).catch(() => {});
+
+      // Also delete thumbnail if exists
+      const filename = this.uploadService.getFilenameFromUrl(vehicle.imageUrl);
+      if (filename) {
+        const thumbnailPath = imagePath.replace(filename, `thumb-${filename}`);
+        await this.uploadService.deleteFile(thumbnailPath).catch(() => {});
+      }
+    }
+
+    // Update vehicle
+    const updated = await this.prisma.vehicle.update({
+      where: { id },
+      data: {
+        imageUrl: null,
+      },
+    });
+
+    return {
+      message: 'Vehicle image deleted successfully',
+      vehicle: updated,
     };
   }
 }

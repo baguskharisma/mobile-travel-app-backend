@@ -2,15 +2,21 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDriverDto, QueryDriversDto, UpdateDriverDto, UpdateDriverStatusDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
+import { UploadService } from '../../common/upload/upload.service';
+import { UploadType } from '../../common/upload/upload.config';
 
 @Injectable()
 export class DriversService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   async create(createDriverDto: CreateDriverDto) {
     // Check if email already exists
@@ -37,7 +43,8 @@ export class DriversService {
 
       const user = await prisma.user.create({
         data: {
-          email: createDriverDto.email,
+          phone: createDriverDto.phone,
+          email: createDriverDto.email || null,
           password: hashedPassword,
           role: UserRole.DRIVER,
         },
@@ -206,5 +213,169 @@ export class DriversService {
     });
 
     return updatedDriver;
+  }
+
+  async findByUserId(userId: string) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver profile not found');
+    }
+
+    return driver;
+  }
+
+  async updateByUserId(userId: string, updateDriverDto: UpdateDriverDto) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { userId },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver profile not found');
+    }
+
+    return this.update(driver.id, updateDriverDto);
+  }
+
+  async uploadProfileImage(userId: string, file: Express.Multer.File) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { userId },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver profile not found');
+    }
+
+    return this.uploadImage(driver.id, file);
+  }
+
+  async deleteProfileImage(userId: string) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { userId },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver profile not found');
+    }
+
+    return this.deleteImage(driver.id);
+  }
+
+  async uploadImage(id: string, file: Express.Multer.File) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { id },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver not found');
+    }
+
+    // Delete old image if exists
+    if (driver.profileImageUrl) {
+      const oldPath = this.uploadService.getPathFromUrl(driver.profileImageUrl);
+      if (oldPath) {
+        await this.uploadService.deleteFile(oldPath).catch(() => {});
+      }
+    }
+
+    // Process uploaded image
+    const processedImage = await this.uploadService.processUploadedFile(
+      file,
+      UploadType.PROFILE,
+      {
+        optimize: true,
+        generateThumbnail: true,
+        maxWidth: 800,
+        maxHeight: 800,
+      },
+    );
+
+    // Update driver with new image URL
+    const updated = await this.prisma.driver.update({
+      where: { id },
+      data: {
+        profileImageUrl: processedImage.url,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Profile image uploaded successfully',
+      imageUrl: processedImage.url,
+      thumbnailUrl: processedImage.thumbnailUrl,
+      driver: updated,
+    };
+  }
+
+  async deleteImage(id: string) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { id },
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver not found');
+    }
+
+    if (!driver.profileImageUrl) {
+      throw new BadRequestException('Driver has no profile image');
+    }
+
+    // Delete image file
+    const imagePath = this.uploadService.getPathFromUrl(driver.profileImageUrl);
+    if (imagePath) {
+      await this.uploadService.deleteFile(imagePath).catch(() => {});
+
+      // Also delete thumbnail if exists
+      const filename = this.uploadService.getFilenameFromUrl(driver.profileImageUrl);
+      if (filename) {
+        const thumbnailPath = imagePath.replace(filename, `thumb-${filename}`);
+        await this.uploadService.deleteFile(thumbnailPath).catch(() => {});
+      }
+    }
+
+    // Update driver
+    const updated = await this.prisma.driver.update({
+      where: { id },
+      data: {
+        profileImageUrl: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Profile image deleted successfully',
+      driver: updated,
+    };
   }
 }

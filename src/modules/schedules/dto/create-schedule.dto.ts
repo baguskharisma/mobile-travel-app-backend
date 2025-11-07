@@ -38,4 +38,19 @@ export class CreateScheduleDto {
   @IsNotEmpty()
   @Min(1, { message: 'Available seats must be at least 1' })
   availableSeats: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0, { message: 'Fuel cost must be at least 0' })
+  fuelCost?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0, { message: 'Driver wage must be at least 0' })
+  driverWage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0, { message: 'Snack cost must be at least 0' })
+  snackCost?: number;
 }

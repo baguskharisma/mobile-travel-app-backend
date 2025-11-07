@@ -9,6 +9,8 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
 import {
@@ -19,6 +21,8 @@ import {
 } from './dto';
 import { Roles } from '../../auth/decorators';
 import { UserRole } from '@prisma/client';
+import { createFileUploadInterceptor } from '../../common/upload/interceptors/file-upload.interceptor';
+import { UploadType } from '../../common/upload/upload.config';
 
 @Controller('vehicles')
 export class VehiclesController {
@@ -62,6 +66,24 @@ export class VehiclesController {
     @Body() updateStatusDto: UpdateVehicleStatusDto,
   ) {
     return this.vehiclesService.updateStatus(id, updateStatusDto);
+  }
+
+  @Post(':id/image')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @UseInterceptors(createFileUploadInterceptor(UploadType.VEHICLE, 'image'))
+  async uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.vehiclesService.uploadImage(id, file);
+  }
+
+  @Delete(':id/image')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  deleteImage(@Param('id') id: string) {
+    return this.vehiclesService.deleteImage(id);
   }
 
   @Delete(':id')

@@ -8,10 +8,15 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAdminDto, QueryAdminsDto, UpdateAdminDto, UpdateAdminStatusDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from '@prisma/client';
+import { UploadService } from '../../common/upload/upload.service';
+import { UploadType } from '../../common/upload/upload.config';
 
 @Injectable()
 export class AdminsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   async create(createAdminDto: CreateAdminDto) {
     // Check if email already exists
@@ -38,7 +43,8 @@ export class AdminsService {
 
       const user = await prisma.user.create({
         data: {
-          email: createAdminDto.email,
+          phone: createAdminDto.phone,
+          email: createAdminDto.email || null,
           password: hashedPassword,
           role: UserRole.ADMIN,
         },
@@ -309,5 +315,172 @@ export class AdminsService {
     });
 
     return restoredUser.admin;
+  }
+
+  async findByUserId(userId: string) {
+    const admin = await this.prisma.admin.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+            role: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Admin profile not found');
+    }
+
+    return admin;
+  }
+
+  async updateByUserId(userId: string, updateAdminDto: UpdateAdminDto) {
+    const admin = await this.prisma.admin.findUnique({
+      where: { userId },
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Admin profile not found');
+    }
+
+    return this.update(admin.id, updateAdminDto);
+  }
+
+  async uploadProfileImage(userId: string, file: Express.Multer.File) {
+    const admin = await this.prisma.admin.findUnique({
+      where: { userId },
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Admin profile not found');
+    }
+
+    return this.uploadImage(admin.id, file);
+  }
+
+  async deleteProfileImage(userId: string) {
+    const admin = await this.prisma.admin.findUnique({
+      where: { userId },
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Admin profile not found');
+    }
+
+    return this.deleteImage(admin.id);
+  }
+
+  async uploadImage(id: string, file: Express.Multer.File) {
+    const admin = await this.prisma.admin.findUnique({
+      where: { id },
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Admin not found');
+    }
+
+    // Delete old image if exists
+    if (admin.profileImageUrl) {
+      const oldPath = this.uploadService.getPathFromUrl(admin.profileImageUrl);
+      if (oldPath) {
+        await this.uploadService.deleteFile(oldPath).catch(() => {});
+      }
+    }
+
+    // Process uploaded image
+    const processedImage = await this.uploadService.processUploadedFile(
+      file,
+      UploadType.PROFILE,
+      {
+        optimize: true,
+        generateThumbnail: true,
+        maxWidth: 800,
+        maxHeight: 800,
+      },
+    );
+
+    // Update admin with new image URL
+    const updated = await this.prisma.admin.update({
+      where: { id },
+      data: {
+        profileImageUrl: processedImage.url,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Profile image uploaded successfully',
+      imageUrl: processedImage.url,
+      thumbnailUrl: processedImage.thumbnailUrl,
+      admin: updated,
+    };
+  }
+
+  async deleteImage(id: string) {
+    const admin = await this.prisma.admin.findUnique({
+      where: { id },
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Admin not found');
+    }
+
+    if (!admin.profileImageUrl) {
+      throw new BadRequestException('Admin has no profile image');
+    }
+
+    // Delete image file
+    const imagePath = this.uploadService.getPathFromUrl(admin.profileImageUrl);
+    if (imagePath) {
+      await this.uploadService.deleteFile(imagePath).catch(() => {});
+
+      // Also delete thumbnail if exists
+      const filename = this.uploadService.getFilenameFromUrl(admin.profileImageUrl);
+      if (filename) {
+        const thumbnailPath = imagePath.replace(filename, `thumb-${filename}`);
+        await this.uploadService.deleteFile(thumbnailPath).catch(() => {});
+      }
+    }
+
+    // Update admin
+    const updated = await this.prisma.admin.update({
+      where: { id },
+      data: {
+        profileImageUrl: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            status: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Profile image deleted successfully',
+      admin: updated,
+    };
   }
 }

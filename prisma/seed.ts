@@ -15,6 +15,7 @@ async function main() {
   // Super Admin
   const superAdminUser = await prisma.user.create({
     data: {
+      phone: '+6281234567890',
       email: 'superadmin@travelapp.com',
       password: hashedPassword,
       role: 'SUPER_ADMIN',
@@ -30,9 +31,10 @@ async function main() {
   });
 
   // Admin Medan
-  const adminMedan = await prisma.user.create({
+  const admin = await prisma.user.create({
     data: {
-      email: 'admin.medan@travelapp.com',
+      phone: '+6281234567891',
+      email: 'admin@travelapp.com',
       password: hashedPassword,
       role: 'ADMIN',
       status: 'ACTIVE',
@@ -46,26 +48,10 @@ async function main() {
     },
   });
 
-  // Admin Palembang
-  const adminPalembang = await prisma.user.create({
-    data: {
-      email: 'admin.palembang@travelapp.com',
-      password: hashedPassword,
-      role: 'ADMIN',
-      status: 'ACTIVE',
-      admin: {
-        create: {
-          name: 'Admin Palembang',
-          phone: '+6281234567892',
-          coinBalance: 50000,
-        },
-      },
-    },
-  });
-
   // Drivers
   const driver1 = await prisma.user.create({
     data: {
+      phone: '+6281234567893',
       email: 'driver1@travelapp.com',
       password: hashedPassword,
       role: 'DRIVER',
@@ -84,6 +70,7 @@ async function main() {
 
   const driver2 = await prisma.user.create({
     data: {
+      phone: '+6281234567894',
       email: 'driver2@travelapp.com',
       password: hashedPassword,
       role: 'DRIVER',
@@ -102,6 +89,7 @@ async function main() {
 
   const driver3 = await prisma.user.create({
     data: {
+      phone: '+6281234567895',
       email: 'driver3@travelapp.com',
       password: hashedPassword,
       role: 'DRIVER',
@@ -121,15 +109,16 @@ async function main() {
   // Customers
   const customer1 = await prisma.user.create({
     data: {
+      phone: '+6281234567896',
       email: 'customer1@gmail.com',
       password: hashedPassword,
       role: 'CUSTOMER',
       status: 'ACTIVE',
       customer: {
         create: {
-          name: 'Siti Nurhaliza',
+          name: 'Bagus Kharisma',
           phone: '+6281234567896',
-          address: 'Jl. Merdeka No. 100, Medan',
+          address: 'Jl. Merdeka No. 100',
         },
       },
     },
@@ -137,15 +126,16 @@ async function main() {
 
   const customer2 = await prisma.user.create({
     data: {
+      phone: '+6281234567897',
       email: 'customer2@gmail.com',
       password: hashedPassword,
       role: 'CUSTOMER',
       status: 'ACTIVE',
       customer: {
         create: {
-          name: 'Ahmad Fauzi',
+          name: 'Satrio Wicaksono',
           phone: '+6281234567897',
-          address: 'Jl. Pemuda No. 55, Banda Aceh',
+          address: 'Jl. Pemuda No. 55',
         },
       },
     },
@@ -330,23 +320,23 @@ async function main() {
         vehicleNumber: 'BK 1234 AA',
         type: 'EKSEKUTIF',
         brand: 'Toyota',
-        model: 'Hiace Commuter',
+        model: 'Innova',
         capacity: 5,
         status: 'AVAILABLE',
       },
       {
         vehicleNumber: 'BK 5678 AB',
         type: 'EKSEKUTIF',
-        brand: 'Isuzu',
-        model: 'Elf Microbus',
+       brand: 'Toyota',
+        model: 'Innova',
         capacity: 5,
         status: 'AVAILABLE',
       },
       {
         vehicleNumber: 'BA 9012 AC',
         type: 'EKSEKUTIF',
-        brand: 'Mercedes-Benz',
-        model: 'Sprinter',
+        brand: 'Toyota',
+        model: 'Innova',
         capacity: 5,
         status: 'AVAILABLE',
       },
@@ -354,7 +344,7 @@ async function main() {
         vehicleNumber: 'BA 3456 AD',
         type: 'EKSEKUTIF',
         brand: 'Toyota',
-        model: 'Hiace Premio',
+        model: 'Innova',
         capacity: 5,
         status: 'AVAILABLE',
       },
@@ -363,24 +353,24 @@ async function main() {
       {
         vehicleNumber: 'BK 7890 BA',
         type: 'REGULAR',
-        brand: 'Isuzu',
-        model: 'Elf Long',
+        brand: 'Toyota',
+        model: 'Innova',
         capacity: 7,
         status: 'AVAILABLE',
       },
       {
         vehicleNumber: 'BK 2345 BB',
         type: 'REGULAR',
-        brand: 'Mitsubishi',
-        model: 'Colt Diesel',
+        brand: 'Toyota',
+        model: 'Innova',
         capacity: 7,
         status: 'AVAILABLE',
       },
       {
         vehicleNumber: 'BA 6789 BC',
         type: 'REGULAR',
-        brand: 'Isuzu',
-        model: 'Elf NKR',
+        brand: 'Toyota',
+        model: 'Innova',
         capacity: 7,
         status: 'AVAILABLE',
       },
@@ -388,23 +378,23 @@ async function main() {
         vehicleNumber: 'BA 1234 BD',
         type: 'REGULAR',
         brand: 'Toyota',
-        model: 'Dyna',
+        model: 'Innova',
         capacity: 7,
         status: 'AVAILABLE',
       },
       {
         vehicleNumber: 'BM 5678 BE',
         type: 'REGULAR',
-        brand: 'Mitsubishi',
-        model: 'Fuso',
+        brand: 'Toyota',
+        model: 'Innova',
         capacity: 7,
         status: 'AVAILABLE',
       },
       {
         vehicleNumber: 'BM 9012 BF',
         type: 'REGULAR',
-        brand: 'Hino',
-        model: 'Dutro',
+        brand: 'Toyota',
+        model: 'Innova',
         capacity: 7,
         status: 'AVAILABLE',
       },

@@ -1,6 +1,6 @@
 import { IsOptional, IsInt, Min, IsEnum, IsString, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TravelDocumentStatus } from '../../../../generated/prisma';
+import { TravelDocumentStatus } from '@prisma/client';
 
 export class QueryTravelDocumentsDto {
   @IsOptional()
