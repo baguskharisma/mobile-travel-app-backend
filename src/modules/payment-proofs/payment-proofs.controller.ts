@@ -11,8 +11,6 @@ import {
   UploadedFile,
   Query,
   BadRequestException,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -38,8 +36,6 @@ export class PaymentProofsController {
    * Customer uploads payment proof
    */
   @Post()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @UseInterceptors(FileInterceptor('paymentProof'))
   @Roles(UserRole.CUSTOMER)
   @UseInterceptors(
     FileInterceptor('paymentProof', {
@@ -74,6 +70,14 @@ export class PaymentProofsController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser('userId') userId: string,
   ) {
+    // Debug logging
+    console.log('========== PAYMENT PROOF BACKEND DEBUG ==========');
+    console.log('File received:', file ? file.filename : 'NO FILE');
+    console.log('CreateDto:', JSON.stringify(createDto, null, 2));
+    console.log('Passengers type:', typeof createDto.passengers);
+    console.log('Passengers value:', createDto.passengers);
+    console.log('=================================================');
+
     if (!file) {
       throw new BadRequestException('Payment proof file is required');
     }
