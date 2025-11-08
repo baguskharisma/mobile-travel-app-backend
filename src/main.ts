@@ -7,6 +7,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
+  // Request logging middleware - BEFORE any other middleware
+  app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    logger.log(`[${timestamp}] Incoming Request: ${req.method} ${req.url}`);
+    logger.log(`Headers: ${JSON.stringify(req.headers, null, 2)}`);
+    logger.log(`Content-Type: ${req.headers['content-type']}`);
+    next();
+  });
+
   // Enable CORS
   app.enableCors({
     origin: process.env.CORS_ORIGIN || '*',
