@@ -11,6 +11,8 @@ import {
   UploadedFile,
   Query,
   BadRequestException,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -36,6 +38,8 @@ export class PaymentProofsController {
    * Customer uploads payment proof
    */
   @Post()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @UseInterceptors(FileInterceptor('paymentProof'))
   @Roles(UserRole.CUSTOMER)
   @UseInterceptors(
     FileInterceptor('paymentProof', {
