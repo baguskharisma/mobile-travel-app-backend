@@ -74,15 +74,6 @@ export class PaymentProofsController {
       throw new BadRequestException('Payment proof file is required');
     }
 
-    // Parse passengers JSON string if it comes as string from FormData
-    if (typeof createDto.passengers === 'string') {
-      try {
-        createDto.passengers = JSON.parse(createDto.passengers);
-      } catch (error) {
-        throw new BadRequestException('Invalid passengers data format');
-      }
-    }
-
     const paymentProofUrl = `/uploads/payment-proofs/${file.filename}`;
 
     return this.paymentProofsService.create(

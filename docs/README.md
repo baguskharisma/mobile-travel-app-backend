@@ -207,7 +207,14 @@ POST /api/v1/driver/trips/{scheduleId}/status
 
 #### 1. Browse Upcoming Trips
 ```bash
+# Default (nearest departure)
 GET /api/v1/schedules/upcoming?limit=20
+
+# Find cheapest trips
+GET /api/v1/schedules?sortBy=cheapest&limit=20
+
+# Find nearest departures to specific destination
+GET /api/v1/schedules?destination=Bandung&sortBy=nearest
 ```
 
 #### 2. Book Tickets
@@ -1650,6 +1657,28 @@ GET /api/v1/tickets?status=CONFIRMED&page=1&limit=20&search=TKT-20250110
 | `destination` | string | Search by destination | `?destination=Bandung` |
 | `dateFrom` | ISO 8601 | Start date filter | `?dateFrom=2025-01-15T00:00:00Z` |
 | `dateTo` | ISO 8601 | End date filter | `?dateTo=2025-01-20T23:59:59Z` |
+| `sortBy` | enum | Sort schedules | `?sortBy=cheapest` |
+
+#### Sort Options (`sortBy` parameter)
+
+| Value | Description | Sort Order |
+|-------|-------------|------------|
+| `nearest` | Terdekat (default) | Departure time ascending |
+| `farthest` | Terjauh | Departure time descending |
+| `cheapest` | Termurah | Price ascending |
+| `expensive` | Termahal | Price descending |
+
+**Examples:**
+```bash
+# Get cheapest schedules
+GET /api/v1/schedules?sortBy=cheapest
+
+# Get nearest departures to Bandung
+GET /api/v1/schedules?destination=Bandung&sortBy=nearest
+
+# Get most expensive schedules from Jakarta
+GET /api/v1/schedules?origin=Jakarta&sortBy=expensive&limit=10
+```
 
 ### Ticket Filters
 
