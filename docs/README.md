@@ -6,6 +6,17 @@ Comprehensive REST API documentation for the Mobile Travel App Backend System. T
 
 ## 🆕 Latest Updates (November 2025)
 
+### API Documentation v2.0.0
+Dokumentasi API telah diupdate dari v1.0.0 ke v2.0.0 dengan penambahan **55 endpoint baru**. Sekarang **104 endpoints** telah terdokumentasi lengkap (sebelumnya hanya 49).
+
+**✨ What's New:**
+- ✅ **Payment Proof System** - Complete upload & verification workflow
+- ✅ **User Management CRUD** - Full endpoints untuk Admins, Customers, Drivers
+- ✅ **Profile Image Upload** - Support upload/delete image untuk semua user types
+- ✅ **Vehicle Image Management** - Upload dan manage foto kendaraan
+- ✅ **Enhanced Admin Controls** - SUPER_ADMIN dapat view coin balance admin lain
+- ✅ **Soft Delete & Restore** - Untuk Admin dan Routes
+
 ### Payment Proof System
 Customer booking flow sekarang memerlukan upload bukti pembayaran yang harus diverifikasi admin sebelum tiket dibuat.
 
@@ -18,11 +29,14 @@ Customer booking flow sekarang memerlukan upload bukti pembayaran yang harus div
 - ✅ Seat validation sebelum approval
 - ✅ Coin deduction hanya saat approved
 
-**New Endpoints:**
+**Endpoints:**
 - `POST /payment-proofs` - Upload payment proof
 - `GET /payment-proofs` - List payment proofs (admin)
-- `PATCH /payment-proofs/:id/approve` - Approve proof
-- `PATCH /payment-proofs/:id/reject` - Reject proof
+- `GET /payment-proofs/my-proofs` - Get own payment proofs (customer)
+- `GET /payment-proofs/:id` - Get specific payment proof
+- `PATCH /payment-proofs/:id/approve` - Approve proof & create ticket
+- `PATCH /payment-proofs/:id/reject` - Reject proof with reason
+- `DELETE /payment-proofs/:id` - Delete payment proof
 
 ## 🚀 Quick Start
 
@@ -64,28 +78,110 @@ All endpoints (except login) require JWT Bearer token authentication.
 - User login and JWT token generation
 - Role-based access control (SUPER_ADMIN, ADMIN, DRIVER, CUSTOMER)
 
-### 2. **User Management**
-- **Admins**: Admin user CRUD operations
-- **Customers**: Customer user management
-- **Drivers**: Driver profile and status management
+### 2. **User Management** 👥
+Complete CRUD operations with profile image support:
+
+#### **Admins** (SUPER_ADMIN only)
+- `POST /admins` - Create admin
+- `GET /admins` - List all admins
+- `GET /admins/profile/me` - Get own profile
+- `PATCH /admins/profile/me` - Update own profile
+- `GET /admins/:id` - Get specific admin
+- `PATCH /admins/:id` - Update admin
+- `DELETE /admins/:id` - Soft delete admin
+- `PATCH /admins/:id/restore` - Restore deleted admin
+- `PATCH /admins/:id/status` - Update admin status
+- `POST /admins/profile/image` - Upload own image
+- `POST /admins/:id/image` - Upload admin image
+- `DELETE /admins/profile/image` - Delete own image
+- `DELETE /admins/:id/image` - Delete admin image
+
+#### **Customers**
+- `GET /customers` - List all customers (admin)
+- `GET /customers/profile/me` - Get own profile
+- `PATCH /customers/profile/me` - Update own profile
+- `GET /customers/:id` - Get specific customer (admin)
+- `PATCH /customers/:id` - Update customer (admin)
+- `POST /customers/profile/image` - Upload own image
+- `POST /customers/:id/image` - Upload customer image (admin)
+- `DELETE /customers/profile/image` - Delete own image
+- `DELETE /customers/:id/image` - Delete customer image (admin)
+
+#### **Drivers**
+- `POST /drivers` - Create driver
+- `GET /drivers` - List all drivers
+- `GET /drivers/profile/me` - Get own profile
+- `PATCH /drivers/profile/me` - Update own profile
+- `PATCH /drivers/:id` - Update driver (admin)
+- `PATCH /drivers/:id/status` - Update driver status
+- `POST /drivers/profile/image` - Upload own image
+- `POST /drivers/:id/image` - Upload driver image (admin)
+- `DELETE /drivers/profile/image` - Delete own image
+- `DELETE /drivers/:id/image` - Delete driver image (admin)
 
 ### 3. **Coin System** 💰
 - **Coin Requests**: Top-up requests and approval workflow
+  - `POST /coin-requests` - Create request
+  - `GET /coin-requests` - List requests
+  - `GET /coin-requests/:id` - Get specific request
+  - `PATCH /coin-requests/:id/approve` - Approve (SUPER_ADMIN)
+  - `PATCH /coin-requests/:id/reject` - Reject (SUPER_ADMIN)
 - **Coin Transactions**: Transaction history and balance tracking
+  - `GET /coin-transactions` - List transactions
+  - `GET /coin-transactions/balance` - Get own balance
+  - `GET /admins/:adminId/coin-balance` - Get admin's balance (SUPER_ADMIN)
+  - `GET /admins/:adminId/coin-transactions` - Get admin's transactions (SUPER_ADMIN)
 - **Auto-deduction**:
   - Ticket booking: 10,000 coins per passenger
   - Travel document: 10,000 coins per document
 
 ### 4. **Travel Operations**
 - **Routes**: Travel route management
-- **Vehicles**: Fleet management with status tracking
+  - `POST /routes` - Create route
+  - `GET /routes` - List routes
+  - `GET /routes/:id` - Get specific route
+  - `PATCH /routes/:id` - Update route
+  - `DELETE /routes/:id` - Soft delete route
+  - `PATCH /routes/:id/restore` - Restore route (SUPER_ADMIN)
+- **Vehicles**: Fleet management with image support
+  - `POST /vehicles` - Create vehicle
+  - `GET /vehicles` - List vehicles
+  - `GET /vehicles/available` - Get available vehicles
+  - `GET /vehicles/:id` - Get specific vehicle
+  - `PATCH /vehicles/:id` - Update vehicle
+  - `PATCH /vehicles/:id/status` - Update status
+  - `POST /vehicles/:id/image` - Upload vehicle image
+  - `DELETE /vehicles/:id/image` - Delete vehicle image
+  - `DELETE /vehicles/:id` - Delete vehicle (SUPER_ADMIN)
 - **Schedules**: Trip scheduling with conflict detection
+  - `POST /schedules` - Create schedule
+  - `GET /schedules` - List schedules
+  - `GET /schedules/upcoming` - Get upcoming schedules
+  - `GET /schedules/:id` - Get specific schedule
+  - `PATCH /schedules/:id` - Update schedule
+  - `PATCH /schedules/:id/assign-driver` - Assign driver
+  - `PATCH /schedules/:id/cancel` - Cancel schedule
+  - `DELETE /schedules/:id` - Delete schedule
   - Driver/vehicle availability validation
   - Automatic seat management
   - Cost tracking (fuel, driver wage, snacks)
 
 ### 5. **Booking System**
+- **Payment Proofs**: Upload and verification workflow
+  - `POST /payment-proofs` - Upload payment proof (customer)
+  - `GET /payment-proofs` - List all proofs (admin)
+  - `GET /payment-proofs/my-proofs` - Get own proofs (customer)
+  - `GET /payment-proofs/:id` - Get specific proof
+  - `PATCH /payment-proofs/:id/approve` - Approve & create ticket (admin)
+  - `PATCH /payment-proofs/:id/reject` - Reject with reason (admin)
+  - `DELETE /payment-proofs/:id` - Delete proof
 - **Tickets**: Passenger booking with seat selection
+  - `POST /tickets` - Create ticket
+  - `GET /tickets` - List tickets
+  - `GET /tickets/:id` - Get specific ticket
+  - `PATCH /tickets/:id/confirm` - Confirm payment
+  - `PATCH /tickets/:id/cancel` - Cancel ticket with refund
+  - `DELETE /tickets/:id` - Delete ticket (SUPER_ADMIN)
   - Multiple passengers per booking
   - Pickup and dropoff address tracking
   - Seat conflict prevention
@@ -93,12 +189,24 @@ All endpoints (except login) require JWT Bearer token authentication.
   - Cancellation with refund
 
 ### 6. **Travel Documents** 📄
-- Create and issue digital travel permits (Surat Jalan)
+- `POST /travel-documents` - Create draft document
+- `GET /travel-documents` - List documents
+- `GET /travel-documents/:id` - Get specific document
+- `PATCH /travel-documents/:id/issue` - Issue document (deducts 10,000 coins)
+- `GET /travel-documents/:id/print` - Generate PDF
+- `PATCH /travel-documents/:id/cancel` - Cancel document
+- `DELETE /travel-documents/:id` - Delete document (SUPER_ADMIN)
+- Digital travel permits (Surat Jalan)
 - PDF generation with professional formatting
 - Coin-based issuance (10,000 coins)
 - Indonesian language format
 
 ### 7. **Driver Panel** 🚗
+- `GET /driver/profile` - Get driver profile & statistics
+- `GET /driver/trips` - Get assigned trips
+- `GET /driver/trips/:scheduleId` - Get trip details
+- `GET /driver/trips/:scheduleId/passengers` - Get passenger manifest
+- `POST /driver/trips/:scheduleId/status` - Update trip status with GPS
 - Driver profile and statistics
 - Assigned trips management
 - Passenger boarding manifest
@@ -110,14 +218,34 @@ All endpoints (except login) require JWT Bearer token authentication.
 - Location history
 - Trip reports and analytics
 
+## 📊 API Summary
+
+**Total Endpoints:** 104
+**API Version:** 2.0.0
+**Base URL:** `/api/v1`
+
+**Breakdown by Module:**
+- Authentication: 4 endpoints
+- Admins: 13 endpoints
+- Customers: 9 endpoints
+- Drivers: 10 endpoints
+- Payment Proofs: 7 endpoints (NEW)
+- Coin System: 6 endpoints
+- Routes: 6 endpoints
+- Vehicles: 9 endpoints
+- Schedules: 8 endpoints
+- Tickets: 6 endpoints
+- Travel Documents: 7 endpoints
+- Driver Panel: 5 endpoints
+
 ## 🔐 Role-Based Access
 
 | Role | Access Level | Key Permissions |
 |------|-------------|-----------------|
-| **SUPER_ADMIN** | Full access | All operations, approve coin requests |
+| **SUPER_ADMIN** | Full access | All operations, approve coin requests, manage admins |
 | **ADMIN** | Management | Create bookings, issue documents, manage resources |
 | **DRIVER** | Limited | View assigned trips, update trip status, view passengers |
-| **CUSTOMER** | Basic | Book tickets, view own bookings |
+| **CUSTOMER** | Basic | Book tickets, upload payment proofs, view own bookings |
 
 ## 💡 Common Use Cases
 
@@ -159,7 +287,25 @@ POST /api/v1/tickets
 ```
 **Note**: This will automatically deduct 10,000 coins per passenger.
 
-#### 3. Issue Travel Document
+#### 3. Review Payment Proofs (NEW)
+```bash
+# Get all pending payment proofs
+GET /api/v1/payment-proofs?status=PENDING
+
+# Approve payment proof (creates ticket automatically)
+PATCH /api/v1/payment-proofs/{id}/approve
+{
+  "notes": "Payment verified, ticket created"
+}
+
+# Reject payment proof
+PATCH /api/v1/payment-proofs/{id}/reject
+{
+  "rejectedReason": "Invalid payment proof or amount mismatch"
+}
+```
+
+#### 4. Issue Travel Document
 ```bash
 # Create draft
 POST /api/v1/travel-documents
@@ -217,14 +363,34 @@ GET /api/v1/schedules?sortBy=cheapest&limit=20
 GET /api/v1/schedules?destination=Bandung&sortBy=nearest
 ```
 
-#### 2. Book Tickets
+#### 2. Book with Payment Proof (NEW - Recommended)
+```bash
+POST /api/v1/payment-proofs
+Content-Type: multipart/form-data
+
+scheduleId: schedule-uuid
+bookingSource: CUSTOMER_APP
+bookerPhone: 081234567890
+pickupAddress: Jl. Gatot Subroto No. 789, Jakarta
+dropoffAddress: Jl. Asia Afrika No. 321, Bandung
+passengers: [{"name": "Jane Smith", "phone": "081234567890", "seatNumber": "B2"}]
+paymentProof: [file upload - image or PDF, max 5MB]
+notes: Transfer via BCA
+```
+
+#### 3. Check Payment Proof Status
+```bash
+GET /api/v1/payment-proofs/my-proofs
+```
+
+#### 4. Direct Ticket Booking (Alternative)
 ```bash
 POST /api/v1/tickets
 {
   "scheduleId": "schedule-uuid",
   "bookingSource": "CUSTOMER_APP",
-  "pickupAddress": "Jl. Gatot Subroto No. 789, Jakarta",  // Required
-  "dropoffAddress": "Jl. Asia Afrika No. 321, Bandung",   // Required
+  "pickupAddress": "Jl. Gatot Subroto No. 789, Jakarta",
+  "dropoffAddress": "Jl. Asia Afrika No. 321, Bandung",
   "passengers": [
     {
       "name": "Jane Smith",
@@ -235,7 +401,7 @@ POST /api/v1/tickets
 }
 ```
 
-#### 3. View My Tickets
+#### 5. View My Tickets
 ```bash
 GET /api/v1/tickets
 ```

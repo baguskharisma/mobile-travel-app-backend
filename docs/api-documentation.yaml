@@ -5,11 +5,12 @@ info:
     Comprehensive REST API for Mobile Travel App Backend System
 
     ## Features
-    - **User Management**: Admins, Customers, and Drivers
-    - **Coin System**: Top-up requests and transaction tracking
-    - **Route & Vehicle Management**: Travel routes and vehicle fleet
-    - **Schedule Management**: Trip scheduling with conflict detection
-    - **Ticket Booking**: Passenger booking with seat selection
+    - **User Management**: Complete CRUD for Admins, Customers, and Drivers with profile image support
+    - **Payment Proof System**: Upload and verification workflow for customer bookings (Nov 2025)
+    - **Coin System**: Top-up requests and transaction tracking with admin-specific endpoints
+    - **Route & Vehicle Management**: Travel routes and vehicle fleet with image upload
+    - **Schedule Management**: Trip scheduling with conflict detection and cost tracking
+    - **Ticket Booking**: Passenger booking with seat selection and payment proof integration
     - **Travel Documents**: Digital travel permits with PDF generation
     - **Driver Panel**: Real-time trip tracking and passenger management
     - **Trip Logs**: Complete audit trail of all trips
@@ -21,7 +22,10 @@ info:
     - Ticket booking: 10,000 coins per passenger
     - Travel document: 10,000 coins per document
 
-  version: 1.0.0
+    ## Payment Proof Flow (New)
+    Customer uploads payment proof → Admin reviews → Approve creates ticket automatically
+
+  version: 2.0.0
   contact:
     name: API Support
     email: support@travelapp.com
@@ -57,6 +61,8 @@ tags:
     description: Ticket booking system
   - name: Travel Documents
     description: Travel document management
+  - name: Payment Proofs
+    description: Payment proof upload and verification system
   - name: Driver Panel
     description: Driver-specific endpoints
   - name: Trip Logs
@@ -115,6 +121,11 @@ components:
     TravelDocumentStatus:
       type: string
       enum: [DRAFT, ISSUED, CANCELLED]
+
+    # Payment Proof
+    PaymentProofStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
 
     # Trip Status
     TripStatus:
@@ -1477,6 +1488,1196 @@ paths:
       responses:
         '200':
           description: Trip status updated and logged
+
+  # ==================== PAYMENT PROOFS ====================
+  /payment-proofs:
+    post:
+      tags: [Payment Proofs]
+      summary: Upload payment proof
+      description: |
+        Customer uploads payment proof for booking verification
+        - Supports image (JPG, PNG) and PDF files
+        - Maximum file size: 5MB
+        - Creates pending payment proof for admin review
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [scheduleId, bookingSource, bookerPhone, pickupAddress, dropoffAddress, passengers, paymentProof]
+              properties:
+                scheduleId:
+                  type: string
+                  description: Schedule ID for the booking
+                bookingSource:
+                  $ref: '#/components/schemas/BookingSource'
+                bookerPhone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: '081234567890'
+                pickupAddress:
+                  type: string
+                  example: Jl. Sudirman No. 123, Jakarta
+                dropoffAddress:
+                  type: string
+                  example: Jl. Dago No. 456, Bandung
+                passengers:
+                  type: array
+                  items:
+                    type: object
+                    required: [name]
+                    properties:
+                      name:
+                        type: string
+                      identityNumber:
+                        type: string
+                      phone:
+                        type: string
+                      seatNumber:
+                        type: string
+                notes:
+                  type: string
+                paymentProof:
+                  type: string
+                  format: binary
+                  description: Payment proof image or PDF file (max 5MB)
+      responses:
+        '201':
+          description: Payment proof uploaded successfully
+        '400':
+          description: Invalid file or validation error
+
+    get:
+      tags: [Payment Proofs]
+      summary: Get all payment proofs (Admin only)
+      description: Retrieve all payment proofs with optional status filter
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PaymentProofStatus'
+          description: Filter by payment proof status
+      responses:
+        '200':
+          description: List of payment proofs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /payment-proofs/my-proofs:
+    get:
+      tags: [Payment Proofs]
+      summary: Get customer's own payment proofs
+      description: Customer retrieves their own payment proof history
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of customer's payment proofs
+
+  /payment-proofs/{id}:
+    get:
+      tags: [Payment Proofs]
+      summary: Get specific payment proof
+      description: Retrieve payment proof details with role-based access control
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment proof details
+        '403':
+          description: Access denied
+        '404':
+          description: Payment proof not found
+
+    delete:
+      tags: [Payment Proofs]
+      summary: Delete payment proof
+      description: Customer or SUPER_ADMIN can delete payment proof
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment proof deleted
+        '403':
+          description: Access denied
+
+  /payment-proofs/{id}/approve:
+    patch:
+      tags: [Payment Proofs]
+      summary: Approve payment proof
+      description: |
+        Admin approves payment proof and automatically creates ticket
+        - Validates seat availability before approval
+        - Creates ticket with CONFIRMED status
+        - Deducts coins if booking source is ADMIN_PANEL
+        - Updates payment proof status to APPROVED
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+                  example: Payment verified and approved
+      responses:
+        '200':
+          description: Payment proof approved and ticket created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentProof:
+                    type: object
+                  ticket:
+                    type: object
+        '400':
+          description: Cannot approve (seats not available, insufficient coins, etc.)
+
+  /payment-proofs/{id}/reject:
+    patch:
+      tags: [Payment Proofs]
+      summary: Reject payment proof
+      description: Admin rejects payment proof with reason
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rejectedReason]
+              properties:
+                rejectedReason:
+                  type: string
+                  example: Invalid payment proof or amount mismatch
+      responses:
+        '200':
+          description: Payment proof rejected
+        '400':
+          description: Cannot reject (already processed)
+
+  # ==================== ADMINS ====================
+  /admins:
+    post:
+      tags: [Admins]
+      summary: Create new admin
+      description: SUPER_ADMIN creates new admin user (SUPER_ADMIN only)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, password]
+              properties:
+                name:
+                  type: string
+                  example: Admin User
+                phone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: '081234567890'
+                email:
+                  type: string
+                  format: email
+                  example: admin@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: Admin123
+      responses:
+        '201':
+          description: Admin created successfully
+        '409':
+          description: Phone or email already exists
+
+    get:
+      tags: [Admins]
+      summary: Get all admins
+      description: Retrieve all admin users (SUPER_ADMIN only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name, phone, or email
+      responses:
+        '200':
+          description: List of admins
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /admins/profile/me:
+    get:
+      tags: [Admins]
+      summary: Get own admin profile
+      description: Admin retrieves their own profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Admin profile
+
+    patch:
+      tags: [Admins]
+      summary: Update own admin profile
+      description: Admin updates their own profile information
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated successfully
+
+  /admins/profile/image:
+    post:
+      tags: [Admins]
+      summary: Upload own profile image
+      description: Admin uploads their own profile picture
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Profile image uploaded
+
+    delete:
+      tags: [Admins]
+      summary: Delete own profile image
+      description: Admin deletes their own profile picture
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile image deleted
+
+  /admins/{id}:
+    get:
+      tags: [Admins]
+      summary: Get specific admin
+      description: Retrieve admin details (SUPER_ADMIN only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin details
+        '404':
+          description: Admin not found
+
+    patch:
+      tags: [Admins]
+      summary: Update admin
+      description: SUPER_ADMIN updates admin information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Admin updated
+
+    delete:
+      tags: [Admins]
+      summary: Delete admin (soft delete)
+      description: SUPER_ADMIN soft deletes admin user
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin deleted
+
+  /admins/{id}/status:
+    patch:
+      tags: [Admins]
+      summary: Update admin status
+      description: SUPER_ADMIN updates admin account status
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/UserStatus'
+      responses:
+        '200':
+          description: Admin status updated
+
+  /admins/{id}/image:
+    post:
+      tags: [Admins]
+      summary: Upload admin profile image
+      description: SUPER_ADMIN uploads profile image for admin
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Profile image uploaded
+
+    delete:
+      tags: [Admins]
+      summary: Delete admin profile image
+      description: SUPER_ADMIN deletes admin's profile image
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile image deleted
+
+  /admins/{id}/restore:
+    patch:
+      tags: [Admins]
+      summary: Restore deleted admin
+      description: SUPER_ADMIN restores soft-deleted admin
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin restored
+
+  /admins/{adminId}/coin-balance:
+    get:
+      tags: [Coin System]
+      summary: Get specific admin's coin balance
+      description: SUPER_ADMIN retrieves specific admin's coin balance
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: adminId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Admin's coin balance
+
+  /admins/{adminId}/coin-transactions:
+    get:
+      tags: [Coin System]
+      summary: Get specific admin's coin transactions
+      description: SUPER_ADMIN retrieves specific admin's transaction history
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: adminId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Admin's transaction history
+
+  # ==================== CUSTOMERS ====================
+  /customers:
+    get:
+      tags: [Customers]
+      summary: Get all customers
+      description: Admin retrieves all customer users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name, phone, or email
+      responses:
+        '200':
+          description: List of customers
+
+  /customers/profile/me:
+    get:
+      tags: [Customers]
+      summary: Get own customer profile
+      description: Customer retrieves their own profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Customer profile
+
+    patch:
+      tags: [Customers]
+      summary: Update own customer profile
+      description: Customer updates their own profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+
+  /customers/profile/image:
+    post:
+      tags: [Customers]
+      summary: Upload own profile image
+      description: Customer uploads their profile picture
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Profile image uploaded
+
+    delete:
+      tags: [Customers]
+      summary: Delete own profile image
+      description: Customer deletes their profile picture
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile image deleted
+
+  /customers/{id}:
+    get:
+      tags: [Customers]
+      summary: Get specific customer
+      description: Admin retrieves customer details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Customer details
+        '404':
+          description: Customer not found
+
+    patch:
+      tags: [Customers]
+      summary: Update customer
+      description: Admin updates customer information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Customer updated
+
+  /customers/{id}/image:
+    post:
+      tags: [Customers]
+      summary: Upload customer profile image
+      description: Admin uploads profile image for customer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Profile image uploaded
+
+    delete:
+      tags: [Customers]
+      summary: Delete customer profile image
+      description: Admin deletes customer's profile image
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile image deleted
+
+  # ==================== DRIVERS ====================
+  /drivers:
+    post:
+      tags: [Drivers]
+      summary: Create new driver
+      description: Create new driver user
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone, password]
+              properties:
+                name:
+                  type: string
+                  example: Driver Name
+                phone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: '081234567890'
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                licenseNumber:
+                  type: string
+                  example: '1234567890'
+                address:
+                  type: string
+      responses:
+        '201':
+          description: Driver created
+
+    get:
+      tags: [Drivers]
+      summary: Get all drivers
+      description: Retrieve all driver users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/DriverStatus'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of drivers
+
+  /drivers/profile/me:
+    get:
+      tags: [Drivers]
+      summary: Get own driver profile
+      description: Driver retrieves their own profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Driver profile
+
+    patch:
+      tags: [Drivers]
+      summary: Update own driver profile
+      description: Driver updates their own profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+                licenseNumber:
+                  type: string
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+
+  /drivers/profile/image:
+    post:
+      tags: [Drivers]
+      summary: Upload own profile image
+      description: Driver uploads their profile picture
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Profile image uploaded
+
+    delete:
+      tags: [Drivers]
+      summary: Delete own profile image
+      description: Driver deletes their profile picture
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile image deleted
+
+  /drivers/{id}:
+    patch:
+      tags: [Drivers]
+      summary: Update driver
+      description: Admin updates driver information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+                licenseNumber:
+                  type: string
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Driver updated
+
+  /drivers/{id}/status:
+    patch:
+      tags: [Drivers]
+      summary: Update driver status
+      description: Update driver availability status
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/DriverStatus'
+      responses:
+        '200':
+          description: Driver status updated
+
+  /drivers/{id}/image:
+    post:
+      tags: [Drivers]
+      summary: Upload driver profile image
+      description: Admin uploads profile image for driver
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Profile image uploaded
+
+    delete:
+      tags: [Drivers]
+      summary: Delete driver profile image
+      description: Admin deletes driver's profile image
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile image deleted
+
+  # ==================== ADDITIONAL VEHICLE ENDPOINTS ====================
+  /vehicles/{id}:
+    get:
+      tags: [Vehicles]
+      summary: Get specific vehicle
+      description: Retrieve vehicle details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vehicle details
+        '404':
+          description: Vehicle not found
+
+    patch:
+      tags: [Vehicles]
+      summary: Update vehicle
+      description: Update vehicle information
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vehicleNumber:
+                  type: string
+                type:
+                  $ref: '#/components/schemas/VehicleType'
+                brand:
+                  type: string
+                model:
+                  type: string
+                capacity:
+                  type: integer
+      responses:
+        '200':
+          description: Vehicle updated
+
+    delete:
+      tags: [Vehicles]
+      summary: Delete vehicle
+      description: Delete vehicle (SUPER_ADMIN only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vehicle deleted
+
+  /vehicles/{id}/image:
+    post:
+      tags: [Vehicles]
+      summary: Upload vehicle image
+      description: Upload vehicle photo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Vehicle image uploaded
+
+    delete:
+      tags: [Vehicles]
+      summary: Delete vehicle image
+      description: Remove vehicle photo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Vehicle image deleted
+
+  # ==================== ADDITIONAL TRAVEL DOCUMENT ENDPOINTS ====================
+  /travel-documents/{id}:
+    get:
+      tags: [Travel Documents]
+      summary: Get specific travel document
+      description: Retrieve travel document details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Travel document details
+        '404':
+          description: Document not found
+
+    delete:
+      tags: [Travel Documents]
+      summary: Delete travel document
+      description: Delete travel document (SUPER_ADMIN only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document deleted
+
+  /travel-documents/{id}/cancel:
+    patch:
+      tags: [Travel Documents]
+      summary: Cancel travel document
+      description: Cancel travel document (only DRAFT status)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document cancelled
+        '400':
+          description: Cannot cancel (already issued)
+
+  # ==================== ADDITIONAL TICKET ENDPOINTS ====================
+  /tickets/{id}:
+    delete:
+      tags: [Tickets]
+      summary: Delete ticket
+      description: Delete ticket (SUPER_ADMIN only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ticket deleted
+
+  # ==================== ADDITIONAL ROUTE ENDPOINTS ====================
+  /routes/{id}/restore:
+    patch:
+      tags: [Routes]
+      summary: Restore deleted route
+      description: Restore soft-deleted route (SUPER_ADMIN only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Route restored
+
+  # ==================== COIN REQUEST DETAIL ====================
+  /coin-requests/{id}:
+    get:
+      tags: [Coin System]
+      summary: Get specific coin request
+      description: Retrieve coin request details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Coin request details
+        '404':
+          description: Coin request not found
 
 security:
   - BearerAuth: []
