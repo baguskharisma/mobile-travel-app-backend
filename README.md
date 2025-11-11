@@ -15,7 +15,7 @@ Backend API untuk aplikasi mobile travel menggunakan NestJS framework dengan Typ
 
 ## Features
 
-- **User Management**: Complete CRUD for Admins, Customers, and Drivers with profile image support
+- **User Management**: Complete CRUD for Admins, Customers, and Drivers with profile image, birthDate, and gender support
 - **Authentication & Authorization**: JWT-based authentication with role-based access control
 - **Token Revocation**: Secure logout with token blacklisting
 - **Payment Proof System**: Upload and verification workflow for customer bookings
@@ -108,7 +108,9 @@ Content-Type: application/json
   "phone": "081234567890",
   "email": "john@example.com",
   "password": "Customer123",
-  "address": "Jl. Sudirman No. 123"
+  "address": "Jl. Sudirman No. 123",
+  "birthDate": "1990-05-15",
+  "gender": "MALE"
 }
 ```
 
@@ -233,6 +235,53 @@ Response: New access and refresh tokens
    - Use short-lived access tokens (1 hour)
    - Use longer-lived refresh tokens (7 days)
 
+## User Profile Fields
+
+All user profiles (Admin, Customer, Driver) support the following personal information fields:
+
+### Birth Date
+- **Field**: `birthDate`
+- **Type**: DateTime (optional)
+- **Format**: ISO 8601 date string (YYYY-MM-DD)
+- **Example**: `"1990-05-15"`
+- **Validation**: Must be valid date format
+- **Usage**: Can be provided during registration/creation or updated later
+
+### Gender
+- **Field**: `gender`
+- **Type**: Enum (optional)
+- **Values**:
+  - `MALE` - Male
+  - `FEMALE` - Female
+  - `OTHER` - Other/Prefer not to say
+- **Example**: `"MALE"`
+- **Usage**: Can be provided during registration/creation or updated later
+
+### Example Usage
+
+**During Registration:**
+```json
+{
+  "name": "John Doe",
+  "phone": "081234567890",
+  "password": "Customer123",
+  "birthDate": "1990-05-15",
+  "gender": "MALE"
+}
+```
+
+**Updating Profile:**
+```json
+PATCH /api/v1/customers/:id
+{
+  "name": "John Doe Updated",
+  "birthDate": "1990-05-15",
+  "gender": "MALE"
+}
+```
+
+**Note**: Both fields are optional and can be omitted. Existing users without these fields will have `null` values until updated.
+
 ## Coin System
 
 ### Admin Coin Management
@@ -302,8 +351,8 @@ Response: New access and refresh tokens
 ## Database Schema
 
 ### Key Models
-- **User**: Base authentication table
-- **Admin, Customer, Driver**: Role-specific profiles
+- **User**: Base authentication table (includes birthDate, gender)
+- **Admin, Customer, Driver**: Role-specific profiles (includes birthDate, gender)
 - **TokenBlacklist**: Revoked JWT tokens
 - **Route**: Travel routes
 - **Vehicle**: Fleet management

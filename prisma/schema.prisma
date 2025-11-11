@@ -28,6 +28,11 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 model User {
   id          String     @id @default(uuid())
   phone       String     @unique // Changed from email to phone as primary identifier
@@ -35,6 +40,8 @@ model User {
   password    String
   role        UserRole
   status      UserStatus @default(ACTIVE)
+  birthDate   DateTime? // Tanggal lahir
+  gender      Gender? // Jenis kelamin
   lastLoginAt DateTime?
   deletedAt   DateTime? // Soft delete timestamp
   createdAt   DateTime   @default(now())
@@ -56,6 +63,8 @@ model Admin {
   userId           String    @unique
   name             String
   phone            String    @unique
+  birthDate        DateTime? // Tanggal lahir
+  gender           Gender? // Jenis kelamin
   profileImageUrl  String? // URL foto profil admin
   coinBalance      Int       @default(0) // Saldo coin admin
   createdAt        DateTime  @default(now())
@@ -79,6 +88,8 @@ model Customer {
   name             String
   phone            String    @unique
   address          String?
+  birthDate        DateTime? // Tanggal lahir
+  gender           Gender? // Jenis kelamin
   profileImageUrl  String? // URL foto profil customer
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -107,6 +118,8 @@ model Driver {
   phone            String       @unique
   licenseNumber    String? // Nomor SIM
   address          String?
+  birthDate        DateTime? // Tanggal lahir
+  gender           Gender? // Jenis kelamin
   profileImageUrl  String? // URL foto profil driver
   status           DriverStatus @default(AVAILABLE)
   createdAt        DateTime     @default(now())

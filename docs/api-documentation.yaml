@@ -86,6 +86,11 @@ components:
       type: string
       enum: [ACTIVE, INACTIVE, SUSPENDED]
 
+    Gender:
+      type: string
+      enum: [MALE, FEMALE, OTHER]
+      description: User gender
+
     # Coin System
     CoinRequestStatus:
       type: string
@@ -273,6 +278,14 @@ paths:
                   type: string
                   example: Jl. Sudirman No. 123, Jakarta
                   description: Optional address
+                birthDate:
+                  type: string
+                  format: date
+                  example: "1990-05-15"
+                  description: Optional birth date (ISO 8601 format YYYY-MM-DD)
+                gender:
+                  $ref: '#/components/schemas/Gender'
+                  description: Optional gender
       responses:
         '201':
           description: Registration successful
@@ -1774,6 +1787,14 @@ paths:
                   format: password
                   minLength: 6
                   example: Admin123
+                birthDate:
+                  type: string
+                  format: date
+                  example: "1985-08-20"
+                  description: Optional birth date (ISO 8601 format)
+                gender:
+                  $ref: '#/components/schemas/Gender'
+                  description: Optional gender
       responses:
         '201':
           description: Admin created successfully
@@ -1925,6 +1946,14 @@ paths:
                   type: string
                 email:
                   type: string
+                birthDate:
+                  type: string
+                  format: date
+                  example: "1985-08-20"
+                  description: Birth date (ISO 8601 format)
+                gender:
+                  $ref: '#/components/schemas/Gender'
+                  description: Gender
       responses:
         '200':
           description: Admin updated
@@ -2215,6 +2244,14 @@ paths:
                   type: string
                 address:
                   type: string
+                birthDate:
+                  type: string
+                  format: date
+                  example: "1990-05-15"
+                  description: Birth date (ISO 8601 format)
+                gender:
+                  $ref: '#/components/schemas/Gender'
+                  description: Gender
       responses:
         '200':
           description: Customer updated
@@ -2298,6 +2335,14 @@ paths:
                   example: '1234567890'
                 address:
                   type: string
+                birthDate:
+                  type: string
+                  format: date
+                  example: "1988-12-10"
+                  description: Optional birth date (ISO 8601 format)
+                gender:
+                  $ref: '#/components/schemas/Gender'
+                  description: Optional gender
       responses:
         '201':
           description: Driver created
@@ -2429,6 +2474,14 @@ paths:
                   type: string
                 address:
                   type: string
+                birthDate:
+                  type: string
+                  format: date
+                  example: "1988-12-10"
+                  description: Birth date (ISO 8601 format)
+                gender:
+                  $ref: '#/components/schemas/Gender'
+                  description: Gender
       responses:
         '200':
           description: Driver updated

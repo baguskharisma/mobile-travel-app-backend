@@ -137,9 +137,15 @@ export class CustomersService {
       }
     }
 
+    // Prepare update data
+    const customerUpdateData: any = { ...updateCustomerDto };
+    if (updateCustomerDto.birthDate) {
+      customerUpdateData.birthDate = new Date(updateCustomerDto.birthDate);
+    }
+
     const updatedCustomer = await this.prisma.customer.update({
       where: { id },
-      data: updateCustomerDto,
+      data: customerUpdateData,
       include: {
         user: {
           select: {

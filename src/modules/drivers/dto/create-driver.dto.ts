@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, IsString, Matches, MinLength, IsOptional } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches, MinLength, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import { Gender } from '@prisma/client';
 
 export class CreateDriverDto {
   @IsEmail()
@@ -32,4 +33,12 @@ export class CreateDriverDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'Birth date must be a valid date (ISO 8601 format)' })
+  birthDate?: string;
+
+  @IsOptional()
+  @IsEnum(Gender, { message: 'Gender must be MALE, FEMALE, or OTHER' })
+  gender?: Gender;
 }

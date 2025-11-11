@@ -47,6 +47,8 @@ export class AdminsService {
           email: createAdminDto.email || null,
           password: hashedPassword,
           role: UserRole.ADMIN,
+          birthDate: createAdminDto.birthDate ? new Date(createAdminDto.birthDate) : null,
+          gender: createAdminDto.gender || null,
         },
       });
 
@@ -55,6 +57,8 @@ export class AdminsService {
           userId: user.id,
           name: createAdminDto.name,
           phone: createAdminDto.phone,
+          birthDate: createAdminDto.birthDate ? new Date(createAdminDto.birthDate) : null,
+          gender: createAdminDto.gender || null,
         },
         include: {
           user: {
@@ -190,9 +194,15 @@ export class AdminsService {
       }
     }
 
+    // Prepare update data
+    const adminUpdateData: any = { ...updateAdminDto };
+    if (updateAdminDto.birthDate) {
+      adminUpdateData.birthDate = new Date(updateAdminDto.birthDate);
+    }
+
     const updatedAdmin = await this.prisma.admin.update({
       where: { id },
-      data: updateAdminDto,
+      data: adminUpdateData,
       include: {
         user: {
           select: {

@@ -5,7 +5,10 @@ import {
   IsString,
   MinLength,
   Matches,
+  IsDateString,
+  IsEnum,
 } from 'class-validator';
+import { Gender } from '@prisma/client';
 
 export class RegisterDto {
   @IsString({ message: 'Name must be a string' })
@@ -36,4 +39,12 @@ export class RegisterDto {
   @IsOptional()
   @IsString({ message: 'Address must be a string' })
   address?: string;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'Birth date must be a valid date (ISO 8601 format)' })
+  birthDate?: string;
+
+  @IsOptional()
+  @IsEnum(Gender, { message: 'Gender must be MALE, FEMALE, or OTHER' })
+  gender?: Gender;
 }

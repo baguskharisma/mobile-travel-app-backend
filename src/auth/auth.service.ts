@@ -74,7 +74,7 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
-    const { email, password, name, phone, address } = registerDto;
+    const { email, password, name, phone, address, birthDate, gender } = registerDto;
 
     // Check if phone already exists in User table
     const existingUserByPhone = await this.prisma.user.findUnique({
@@ -108,6 +108,8 @@ export class AuthService {
           password: hashedPassword,
           role: UserRole.CUSTOMER,
           status: 'ACTIVE',
+          birthDate: birthDate ? new Date(birthDate) : null,
+          gender: gender || null,
         },
       });
 
@@ -117,6 +119,8 @@ export class AuthService {
           name,
           phone,
           address: address || null,
+          birthDate: birthDate ? new Date(birthDate) : null,
+          gender: gender || null,
         },
       });
 

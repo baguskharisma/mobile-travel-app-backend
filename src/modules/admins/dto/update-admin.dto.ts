@@ -1,4 +1,5 @@
-import { IsString, IsOptional, MinLength, Matches, IsInt, Min } from 'class-validator';
+import { IsString, IsOptional, MinLength, Matches, IsInt, Min, IsDateString, IsEnum } from 'class-validator';
+import { Gender } from '@prisma/client';
 
 export class UpdateAdminDto {
   @IsOptional()
@@ -17,4 +18,12 @@ export class UpdateAdminDto {
   @IsInt()
   @Min(0, { message: 'Coin balance cannot be negative' })
   coinBalance?: number;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'Birth date must be a valid date (ISO 8601 format)' })
+  birthDate?: string;
+
+  @IsOptional()
+  @IsEnum(Gender, { message: 'Gender must be MALE, FEMALE, or OTHER' })
+  gender?: Gender;
 }

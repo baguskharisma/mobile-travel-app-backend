@@ -1,4 +1,5 @@
-import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches, MinLength, IsOptional, IsDateString, IsEnum } from 'class-validator';
+import { Gender } from '@prisma/client';
 
 export class CreateAdminDto {
   @IsEmail()
@@ -24,4 +25,12 @@ export class CreateAdminDto {
     message: 'Phone number must be a valid Indonesian phone number',
   })
   phone: string;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'Birth date must be a valid date (ISO 8601 format)' })
+  birthDate?: string;
+
+  @IsOptional()
+  @IsEnum(Gender, { message: 'Gender must be MALE, FEMALE, or OTHER' })
+  gender?: Gender;
 }

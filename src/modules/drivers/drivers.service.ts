@@ -47,6 +47,8 @@ export class DriversService {
           email: createDriverDto.email || null,
           password: hashedPassword,
           role: UserRole.DRIVER,
+          birthDate: createDriverDto.birthDate ? new Date(createDriverDto.birthDate) : null,
+          gender: createDriverDto.gender || null,
         },
       });
 
@@ -57,6 +59,8 @@ export class DriversService {
           phone: createDriverDto.phone,
           licenseNumber: createDriverDto.licenseNumber,
           address: createDriverDto.address,
+          birthDate: createDriverDto.birthDate ? new Date(createDriverDto.birthDate) : null,
+          gender: createDriverDto.gender || null,
         },
         include: {
           user: {
@@ -165,9 +169,15 @@ export class DriversService {
       }
     }
 
+    // Prepare update data
+    const driverUpdateData: any = { ...updateDriverDto };
+    if (updateDriverDto.birthDate) {
+      driverUpdateData.birthDate = new Date(updateDriverDto.birthDate);
+    }
+
     const updatedDriver = await this.prisma.driver.update({
       where: { id },
-      data: updateDriverDto,
+      data: driverUpdateData,
       include: {
         user: {
           select: {
