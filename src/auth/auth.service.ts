@@ -278,4 +278,37 @@ export class AuthService {
       profile,
     };
   }
+
+  async logout(token: string, userId: string): Promise<{ message: string }> {
+    // Decode token untuk mendapatkan expiration time
+    const decoded = this.jwtService.decode(token) as any;
+
+    if (!decoded || !decoded.exp) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    // Convert exp (seconds) to Date
+    const expiresAt = new Date(decoded.exp * 1000);
+
+    // Tambahkan token ke blacklist
+    await this.prisma.tokenBlacklist.create({
+      data: {
+        token,
+        userId,
+        expiresAt,
+      },
+    });
+
+    return {
+      message: 'Logout successful',
+    };
+  }
+
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    const blacklisted = await this.prisma.tokenBlacklist.findUnique({
+      where: { token },
+    });
+
+    return !!blacklisted;
+  }
 }

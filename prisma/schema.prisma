@@ -511,3 +511,17 @@ model SystemConfig {
 
   @@index([key])
 }
+
+// ==================== TOKEN BLACKLIST ====================
+
+model TokenBlacklist {
+  id        String   @id @default(uuid())
+  token     String   @unique // JWT token yang di-blacklist
+  userId    String // User yang logout
+  expiresAt DateTime // Waktu expired token (untuk auto cleanup)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
