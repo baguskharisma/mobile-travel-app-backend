@@ -11,7 +11,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, AuthResponseDto } from './dto';
+import { LoginDto, RegisterDto, AuthResponseDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
 import { Public, CurrentUser } from './decorators';
 import type { CurrentUserType } from './decorators';
 import { JwtRefreshGuard } from './guards';
@@ -98,5 +98,76 @@ export class AuthController {
     }
 
     return this.authService.logout(token, user.id);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 requests per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request password reset',
+    description: 'Send OTP code to user\'s WhatsApp for password reset. The OTP is valid for 5 minutes.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'OTP sent successfully to your WhatsApp'
+        },
+        expiresIn: {
+          type: 'number',
+          example: 300,
+          description: 'OTP expiry time in seconds'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - User account not active or rate limit exceeded'
+  })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string; expiresIn: number }> {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password',
+    description: 'Reset user password by verifying OTP code and setting new password.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Password has been reset successfully'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid or expired OTP'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found'
+  })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

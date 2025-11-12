@@ -6,12 +6,12 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
-// import { OtpModule } from '../modules/otp/otp.module'; // Commented out - OTP verification disabled
+import { OtpModule } from '../modules/otp/otp.module'; // Re-enabled for forgot password feature
 
 @Module({
   imports: [
     PrismaModule,
-    // OtpModule, // Commented out - OTP verification disabled
+    OtpModule, // Import OtpModule for forgot password functionality
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}), // Configuration will be done in service using signAsync
   ],

@@ -115,7 +115,8 @@ All endpoints (except login) require JWT Bearer token authentication.
 
 ### 2. **Authentication**
 - User login and JWT token generation
-- Customer registration with OTP verification
+- Customer registration with OTP verification (optional)
+- Password reset via OTP (forgot password)
 - Token refresh and logout with blacklisting
 - Role-based access control (SUPER_ADMIN, ADMIN, DRIVER, CUSTOMER)
 
@@ -261,13 +262,13 @@ Complete CRUD operations with profile image support:
 
 ## 📊 API Summary
 
-**Total Endpoints:** 106
+**Total Endpoints:** 108
 **API Version:** 2.0.0
 **Base URL:** `/api/v1`
 
 **Breakdown by Module:**
-- OTP Verification: 2 endpoints (NEW)
-- Authentication: 4 endpoints
+- OTP Verification: 2 endpoints
+- Authentication: 6 endpoints (includes forgot/reset password)
 - Admins: 13 endpoints
 - Customers: 9 endpoints
 - Drivers: 10 endpoints
@@ -489,6 +490,44 @@ POST /api/v1/tickets
 #### 6. View My Tickets
 ```bash
 GET /api/v1/tickets
+```
+
+#### 7. Reset Password (Forgot Password)
+```bash
+# Step 1: Request password reset - OTP akan dikirim ke WhatsApp
+POST /api/v1/auth/forgot-password
+{
+  "phone": "081234567890"
+}
+
+# Response:
+{
+  "message": "OTP sent successfully to your WhatsApp",
+  "expiresIn": 300,
+  "phone": "081234567890"
+}
+
+# Step 2: Cek WhatsApp untuk kode OTP 6 digit
+
+# Step 3: Reset password dengan OTP
+POST /api/v1/auth/reset-password
+{
+  "phone": "081234567890",
+  "code": "123456",
+  "newPassword": "NewSecurePassword123"
+}
+
+# Response:
+{
+  "message": "Password has been reset successfully"
+}
+
+# Step 4: Login dengan password baru
+POST /api/v1/auth/login
+{
+  "phone": "081234567890",
+  "password": "NewSecurePassword123"
+}
 ```
 
 ## 📊 Response Formats

@@ -18,7 +18,8 @@ info:
 
     ## Authentication & OTP
     - All endpoints require JWT Bearer token authentication unless marked as public
-    - Customer registration requires OTP verification via WhatsApp
+    - Customer registration requires OTP verification via WhatsApp (can be disabled)
+    - Password reset via OTP verification through WhatsApp
     - OTP valid for 5 minutes with 3 verification attempts
 
     ## Coin System
@@ -28,10 +29,15 @@ info:
     ## Payment Proof Flow
     Customer uploads payment proof → Admin reviews → Approve creates ticket automatically
 
-    ## OTP Registration Flow
+    ## OTP Registration Flow (Optional - Can be Disabled)
     1. Send OTP to phone number (`POST /otp/send`)
     2. Verify OTP code (`POST /otp/verify`)
     3. Register with verified phone (`POST /auth/register`)
+
+    ## Password Reset Flow
+    1. Request password reset (`POST /auth/forgot-password`)
+    2. Receive OTP code via WhatsApp
+    3. Reset password with OTP (`POST /auth/reset-password`)
 
   version: 2.0.0
   contact:
@@ -495,6 +501,124 @@ paths:
                     example: "Phone number not verified. Please verify your phone number with OTP first."
         '409':
           description: Phone number or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      description: |
+        Send OTP code to user's WhatsApp for password reset.
+
+        **Flow:**
+        1. User provides their phone number
+        2. System verifies the phone number exists and account is active
+        3. OTP code (6 digits) is sent via WhatsApp
+        4. OTP is valid for 5 minutes
+        5. Maximum 3 verification attempts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: "081234567890"
+                  description: Phone number in Indonesian format
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP sent successfully to your WhatsApp"
+                  expiresIn:
+                    type: number
+                    example: 300
+                    description: OTP expiry time in seconds
+                  phone:
+                    type: string
+                    example: "081234567890"
+        '400':
+          description: Bad request - User account not active or rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password
+      description: |
+        Reset user password by verifying OTP code and setting new password.
+
+        **Flow:**
+        1. User provides phone number, OTP code, and new password
+        2. System verifies the OTP code
+        3. Password is updated if OTP is valid
+        4. User can login with new password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code, newPassword]
+              properties:
+                phone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: "081234567890"
+                  description: Phone number in Indonesian format
+                code:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                  minLength: 6
+                  maxLength: 6
+                  example: "123456"
+                  description: 6-digit OTP code received via WhatsApp
+                newPassword:
+                  type: string
+                  minLength: 6
+                  example: "NewPassword123"
+                  description: New password (minimum 6 characters)
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password has been reset successfully"
+        '400':
+          description: Bad request - Invalid or expired OTP
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
           content:
             application/json:
               schema:

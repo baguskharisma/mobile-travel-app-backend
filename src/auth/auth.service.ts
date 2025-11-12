@@ -2,23 +2,23 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
-  // BadRequestException, // Commented out - used for OTP verification
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { LoginDto, RegisterDto, AuthResponseDto } from './dto';
+import { LoginDto, RegisterDto, AuthResponseDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
 import { JwtPayload } from './types/jwt-payload.type';
-import { UserRole } from '@prisma/client';
-// import { OtpType } from '@prisma/client'; // Commented out - used for OTP verification
-// import { OtpService } from '../modules/otp/otp.service'; // Commented out - used for OTP verification
+import { UserRole, OtpType } from '@prisma/client';
+import { OtpService } from '../modules/otp/otp.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    // private otpService: OtpService, // Commented out - used for OTP verification
+    private otpService: OtpService,
   ) {}
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
@@ -328,5 +328,73 @@ export class AuthService {
     });
 
     return !!blacklisted;
+  }
+
+  /**
+   * Request password reset - send OTP to user's phone
+   */
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string; expiresIn: number }> {
+    const { phone } = forgotPasswordDto;
+
+    // Check if user exists
+    const user = await this.prisma.user.findFirst({
+      where: {
+        phone,
+        deletedAt: null, // Filter out soft-deleted users
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User with this phone number not found');
+    }
+
+    // Check if user is active
+    if (user.status !== 'ACTIVE') {
+      throw new BadRequestException('User account is not active');
+    }
+
+    // Send OTP via WhatsApp using OTP service
+    const result = await this.otpService.sendOtp(phone, OtpType.PASSWORD_RESET);
+
+    return result;
+  }
+
+  /**
+   * Reset password - verify OTP and update password
+   */
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+    const { phone, code, newPassword } = resetPasswordDto;
+
+    // Verify OTP
+    const otpVerification = await this.otpService.verifyOtp(phone, code, OtpType.PASSWORD_RESET);
+
+    if (!otpVerification.verified) {
+      throw new BadRequestException('Invalid or expired OTP code');
+    }
+
+    // Find user
+    const user = await this.prisma.user.findFirst({
+      where: {
+        phone,
+        deletedAt: null,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Hash new password
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    // Update password
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    return {
+      message: 'Password has been reset successfully',
+    };
   }
 }
