@@ -4,18 +4,36 @@
 
 Comprehensive REST API documentation for the Mobile Travel App Backend System. The API provides complete functionality for managing a travel/transportation business including user management, booking systems with payment proof verification, coin-based payments, and real-time trip tracking.
 
-## 🆕 Latest Updates (November 2025)
+## 🆕 Latest Updates (December 2025)
+
+### OTP Verification System (New!)
+Customer registration sekarang dilindungi dengan sistem verifikasi OTP via WhatsApp menggunakan Twilio.
+
+**📱 OTP Features:**
+- ✅ **WhatsApp Integration** - OTP dikirim via WhatsApp menggunakan Twilio
+- ✅ **6-Digit Code** - Kode OTP 6 digit yang aman
+- ✅ **5-Minute Validity** - OTP berlaku selama 5 menit
+- ✅ **3 Attempts Limit** - Maksimal 3 kali percobaan verifikasi
+- ✅ **Rate Limiting** - Cegah spam dengan throttling (max 1 OTP per 4 menit)
+- ✅ **30-Minute Grace Period** - Status verified berlaku 30 menit untuk registrasi
+
+**Endpoints:**
+- `POST /otp/send` - Send OTP to phone number
+- `POST /otp/verify` - Verify OTP code
+- `POST /auth/register` - Register (requires OTP verification first)
 
 ### API Documentation v2.0.0
-Dokumentasi API telah diupdate dari v1.0.0 ke v2.0.0 dengan penambahan **55 endpoint baru**. Sekarang **104 endpoints** telah terdokumentasi lengkap (sebelumnya hanya 49).
+Dokumentasi API telah diupdate dari v1.0.0 ke v2.0.0 dengan penambahan **55 endpoint baru**. Sekarang **106 endpoints** telah terdokumentasi lengkap (sebelumnya hanya 49).
 
 **✨ What's New:**
+- ✅ **OTP Verification System** - WhatsApp-based OTP for secure registration
 - ✅ **Payment Proof System** - Complete upload & verification workflow
 - ✅ **User Management CRUD** - Full endpoints untuk Admins, Customers, Drivers
 - ✅ **Profile Image Upload** - Support upload/delete image untuk semua user types
 - ✅ **Vehicle Image Management** - Upload dan manage foto kendaraan
 - ✅ **Enhanced Admin Controls** - SUPER_ADMIN dapat view coin balance admin lain
 - ✅ **Soft Delete & Restore** - Untuk Admin dan Routes
+- ✅ **User Profile Fields** - Birth date dan gender support untuk semua user types
 
 ### Payment Proof System
 Customer booking flow sekarang memerlukan upload bukti pembayaran yang harus diverifikasi admin sebelum tiket dibuat.
@@ -74,11 +92,21 @@ All endpoints (except login) require JWT Bearer token authentication.
 
 ## 📋 API Modules
 
-### 1. **Authentication**
+### 1. **OTP Verification** 📱
+- `POST /otp/send` - Send OTP via WhatsApp (Twilio)
+- `POST /otp/verify` - Verify OTP code
+- WhatsApp-based verification using Twilio
+- 6-digit code valid for 5 minutes
+- Maximum 3 verification attempts
+- Rate limiting (max 1 OTP per 4 minutes)
+
+### 2. **Authentication**
 - User login and JWT token generation
+- Customer registration with OTP verification
+- Token refresh and logout with blacklisting
 - Role-based access control (SUPER_ADMIN, ADMIN, DRIVER, CUSTOMER)
 
-### 2. **User Management** 👥
+### 3. **User Management** 👥
 Complete CRUD operations with profile image support:
 
 #### **Admins** (SUPER_ADMIN only)
@@ -119,7 +147,7 @@ Complete CRUD operations with profile image support:
 - `DELETE /drivers/profile/image` - Delete own image
 - `DELETE /drivers/:id/image` - Delete driver image (admin)
 
-### 3. **Coin System** 💰
+### 4. **Coin System** 💰
 - **Coin Requests**: Top-up requests and approval workflow
   - `POST /coin-requests` - Create request
   - `GET /coin-requests` - List requests
@@ -135,7 +163,7 @@ Complete CRUD operations with profile image support:
   - Ticket booking: 10,000 coins per passenger
   - Travel document: 10,000 coins per document
 
-### 4. **Travel Operations**
+### 5. **Travel Operations**
 - **Routes**: Travel route management
   - `POST /routes` - Create route
   - `GET /routes` - List routes
@@ -166,7 +194,7 @@ Complete CRUD operations with profile image support:
   - Automatic seat management
   - Cost tracking (fuel, driver wage, snacks)
 
-### 5. **Booking System**
+### 6. **Booking System**
 - **Payment Proofs**: Upload and verification workflow
   - `POST /payment-proofs` - Upload payment proof (customer)
   - `GET /payment-proofs` - List all proofs (admin)
@@ -188,7 +216,7 @@ Complete CRUD operations with profile image support:
   - Auto coin deduction for admin bookings
   - Cancellation with refund
 
-### 6. **Travel Documents** 📄
+### 7. **Travel Documents** 📄
 - `POST /travel-documents` - Create draft document
 - `GET /travel-documents` - List documents
 - `GET /travel-documents/:id` - Get specific document
@@ -201,7 +229,7 @@ Complete CRUD operations with profile image support:
 - Coin-based issuance (10,000 coins)
 - Indonesian language format
 
-### 7. **Driver Panel** 🚗
+### 8. **Driver Panel** 🚗
 - `GET /driver/profile` - Get driver profile & statistics
 - `GET /driver/trips` - Get assigned trips
 - `GET /driver/trips/:scheduleId` - Get trip details
@@ -212,7 +240,7 @@ Complete CRUD operations with profile image support:
 - Passenger boarding manifest
 - Real-time trip status updates with GPS tracking
 
-### 8. **Trip Logging**
+### 9. **Trip Logging**
 - Complete trip audit trail
 - Status changes tracking
 - Location history
@@ -220,16 +248,17 @@ Complete CRUD operations with profile image support:
 
 ## 📊 API Summary
 
-**Total Endpoints:** 104
+**Total Endpoints:** 106
 **API Version:** 2.0.0
 **Base URL:** `/api/v1`
 
 **Breakdown by Module:**
+- OTP Verification: 2 endpoints (NEW)
 - Authentication: 4 endpoints
 - Admins: 13 endpoints
 - Customers: 9 endpoints
 - Drivers: 10 endpoints
-- Payment Proofs: 7 endpoints (NEW)
+- Payment Proofs: 7 endpoints
 - Coin System: 6 endpoints
 - Routes: 6 endpoints
 - Vehicles: 9 endpoints
@@ -237,6 +266,7 @@ Complete CRUD operations with profile image support:
 - Tickets: 6 endpoints
 - Travel Documents: 7 endpoints
 - Driver Panel: 5 endpoints
+- Trip Logs: 14 endpoints
 
 ## 🔐 Role-Based Access
 
@@ -351,7 +381,49 @@ POST /api/v1/driver/trips/{scheduleId}/status
 
 ### For Customers
 
-#### 1. Browse Upcoming Trips
+#### 1. Register with OTP Verification (NEW - Required)
+```bash
+# Step 1: Send OTP to WhatsApp
+POST /api/v1/otp/send
+{
+  "phone": "081234567890"
+}
+
+# Response:
+{
+  "message": "OTP sent successfully to your WhatsApp",
+  "expiresIn": 300,
+  "phone": "081234567890"
+}
+
+# Step 2: Verify OTP code
+POST /api/v1/otp/verify
+{
+  "phone": "081234567890",
+  "code": "123456"
+}
+
+# Response:
+{
+  "message": "OTP verified successfully",
+  "verified": true,
+  "phone": "081234567890"
+}
+
+# Step 3: Register account (must be done within 30 minutes of OTP verification)
+POST /api/v1/auth/register
+{
+  "name": "John Doe",
+  "phone": "081234567890",
+  "email": "john@example.com",
+  "password": "Customer123",
+  "address": "Jl. Sudirman No. 123",
+  "birthDate": "1990-05-15",
+  "gender": "MALE"
+}
+```
+
+#### 2. Browse Upcoming Trips
 ```bash
 # Default (nearest departure)
 GET /api/v1/schedules/upcoming?limit=20
@@ -363,7 +435,7 @@ GET /api/v1/schedules?sortBy=cheapest&limit=20
 GET /api/v1/schedules?destination=Bandung&sortBy=nearest
 ```
 
-#### 2. Book with Payment Proof (NEW - Recommended)
+#### 3. Book with Payment Proof (Recommended)
 ```bash
 POST /api/v1/payment-proofs
 Content-Type: multipart/form-data
@@ -378,12 +450,12 @@ paymentProof: [file upload - image or PDF, max 5MB]
 notes: Transfer via BCA
 ```
 
-#### 3. Check Payment Proof Status
+#### 4. Check Payment Proof Status
 ```bash
 GET /api/v1/payment-proofs/my-proofs
 ```
 
-#### 4. Direct Ticket Booking (Alternative)
+#### 5. Direct Ticket Booking (Alternative)
 ```bash
 POST /api/v1/tickets
 {
@@ -401,7 +473,7 @@ POST /api/v1/tickets
 }
 ```
 
-#### 5. View My Tickets
+#### 6. View My Tickets
 ```bash
 GET /api/v1/tickets
 ```
