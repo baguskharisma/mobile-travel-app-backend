@@ -55,6 +55,9 @@ JWT_ACCESS_SECRET="your-access-secret-key"
 JWT_REFRESH_SECRET="your-refresh-secret-key"
 JWT_ACCESS_EXPIRES="1h"
 JWT_REFRESH_EXPIRES="7d"
+TWILIO_ACCOUNT_SID="your-twilio-account-sid"
+TWILIO_AUTH_TOKEN="your-twilio-auth-token"
+TWILIO_WHATSAPP_NUMBER="+14155238886"
 PORT=3001
 ```
 
@@ -98,7 +101,60 @@ Setelah aplikasi berjalan, akses dokumentasi Swagger di:
 
 ### Authentication Flow
 
-#### 1. Register (Customer)
+#### 1. OTP Verification (Required for Registration)
+
+Before registering, customers must verify their phone number via OTP sent to WhatsApp.
+
+**Step 1: Send OTP**
+```bash
+POST /api/v1/otp/send
+Content-Type: application/json
+
+{
+  "phone": "081234567890"
+}
+```
+
+Response:
+```json
+{
+  "message": "OTP sent successfully to your WhatsApp",
+  "expiresIn": 300,
+  "phone": "081234567890"
+}
+```
+
+**Step 2: Verify OTP**
+```bash
+POST /api/v1/otp/verify
+Content-Type: application/json
+
+{
+  "phone": "081234567890",
+  "code": "123456"
+}
+```
+
+Response:
+```json
+{
+  "message": "OTP verified successfully",
+  "verified": true,
+  "phone": "081234567890"
+}
+```
+
+**OTP Features:**
+- 6-digit code sent via WhatsApp using Twilio
+- Valid for 5 minutes
+- Maximum 3 verification attempts
+- Phone number verified status valid for 30 minutes
+- Rate limiting to prevent spam (max 1 OTP per 4 minutes)
+
+#### 2. Register (Customer)
+
+**IMPORTANT:** You must verify your phone number with OTP first before registering.
+
 ```bash
 POST /api/v1/auth/register
 Content-Type: application/json
@@ -134,7 +190,7 @@ Response:
 }
 ```
 
-#### 2. Login
+#### 3. Login
 ```bash
 POST /api/v1/auth/login
 Content-Type: application/json
@@ -147,7 +203,7 @@ Content-Type: application/json
 
 Response: Same as register response
 
-#### 3. Get Profile
+#### 4. Get Profile
 ```bash
 GET /api/v1/auth/me
 Authorization: Bearer <accessToken>
@@ -169,7 +225,7 @@ Response:
 }
 ```
 
-#### 4. Logout (Token Revocation)
+#### 5. Logout (Token Revocation)
 ```bash
 POST /api/v1/auth/logout
 Authorization: Bearer <accessToken>
@@ -202,7 +258,7 @@ Authorization: Bearer <revoked-token>
 }
 ```
 
-#### 5. Refresh Token
+#### 6. Refresh Token
 ```bash
 POST /api/v1/auth/refresh
 Content-Type: application/json
@@ -313,8 +369,12 @@ PATCH /api/v1/customers/:id
 
 ## Key Endpoints
 
+### OTP Verification
+- `POST /otp/send` - Send OTP via WhatsApp
+- `POST /otp/verify` - Verify OTP code
+
 ### Authentication
-- `POST /auth/register` - Customer registration
+- `POST /auth/register` - Customer registration (requires OTP verification)
 - `POST /auth/login` - User login
 - `POST /auth/refresh` - Refresh access token
 - `GET /auth/me` - Get current user profile
@@ -354,6 +414,7 @@ PATCH /api/v1/customers/:id
 - **User**: Base authentication table (includes birthDate, gender)
 - **Admin, Customer, Driver**: Role-specific profiles (includes birthDate, gender)
 - **TokenBlacklist**: Revoked JWT tokens
+- **Otp**: OTP verification records (phone, code, type, status, attempts)
 - **Route**: Travel routes
 - **Vehicle**: Fleet management
 - **Schedule**: Trip schedules

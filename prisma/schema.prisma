@@ -538,3 +538,38 @@ model TokenBlacklist {
   @@index([userId])
   @@index([expiresAt])
 }
+
+// ==================== OTP VERIFICATION ====================
+
+enum OtpType {
+  REGISTRATION // OTP untuk registrasi
+  PASSWORD_RESET // OTP untuk reset password
+  PHONE_VERIFICATION // OTP untuk verifikasi nomor HP
+}
+
+enum OtpStatus {
+  PENDING // Menunggu verifikasi
+  VERIFIED // Sudah diverifikasi
+  EXPIRED // Sudah kadaluarsa
+  FAILED // Gagal (max attempts exceeded)
+}
+
+model Otp {
+  id          String    @id @default(uuid())
+  phone       String // Nomor HP tujuan
+  code        String // Kode OTP (6 digit)
+  type        OtpType // Jenis OTP
+  status      OtpStatus @default(PENDING)
+  attempts    Int       @default(0) // Jumlah percobaan verifikasi
+  maxAttempts Int       @default(3) // Maksimal percobaan
+  expiresAt   DateTime // Waktu kadaluarsa (default 5 menit)
+  verifiedAt  DateTime? // Waktu verifikasi berhasil
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([phone])
+  @@index([code])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([createdAt])
+}

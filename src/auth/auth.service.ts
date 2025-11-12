@@ -2,19 +2,22 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto, AuthResponseDto } from './dto';
 import { JwtPayload } from './types/jwt-payload.type';
-import { UserRole } from '@prisma/client';
+import { UserRole, OtpType } from '@prisma/client';
+import { OtpService } from '../modules/otp/otp.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private otpService: OtpService,
   ) {}
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
@@ -75,6 +78,14 @@ export class AuthService {
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const { email, password, name, phone, address, birthDate, gender } = registerDto;
+
+    // Verifikasi OTP terlebih dahulu sebelum registrasi
+    const isOtpVerified = await this.otpService.isPhoneVerified(phone, OtpType.REGISTRATION);
+    if (!isOtpVerified) {
+      throw new BadRequestException(
+        'Phone number not verified. Please verify your phone number with OTP first.'
+      );
+    }
 
     // Check if phone already exists in User table
     const existingUserByPhone = await this.prisma.user.findUnique({

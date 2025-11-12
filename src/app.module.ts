@@ -21,6 +21,7 @@ import { TravelDocumentsModule } from './modules/travel-documents/travel-documen
 import { TripLogsModule } from './modules/trip-logs/trip-logs.module';
 import { DriverPanelModule } from './modules/driver-panel/driver-panel.module';
 import { PaymentProofsModule } from './modules/payment-proofs/payment-proofs.module';
+import { OtpModule } from './modules/otp/otp.module';
 import { UploadModule } from './common/upload/upload.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -72,6 +73,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     TripLogsModule,
     DriverPanelModule,
     PaymentProofsModule,
+    OtpModule,
   ],
   controllers: [AppController],
   providers: [

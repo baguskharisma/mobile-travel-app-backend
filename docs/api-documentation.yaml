@@ -5,6 +5,7 @@ info:
     Comprehensive REST API for Mobile Travel App Backend System
 
     ## Features
+    - **OTP Verification**: WhatsApp-based OTP verification using Twilio for secure registration
     - **User Management**: Complete CRUD for Admins, Customers, and Drivers with profile image support
     - **Payment Proof System**: Upload and verification workflow for customer bookings (Nov 2025)
     - **Coin System**: Top-up requests and transaction tracking with admin-specific endpoints
@@ -15,15 +16,22 @@ info:
     - **Driver Panel**: Real-time trip tracking and passenger management
     - **Trip Logs**: Complete audit trail of all trips
 
-    ## Authentication
-    All endpoints require JWT Bearer token authentication unless marked as public.
+    ## Authentication & OTP
+    - All endpoints require JWT Bearer token authentication unless marked as public
+    - Customer registration requires OTP verification via WhatsApp
+    - OTP valid for 5 minutes with 3 verification attempts
 
     ## Coin System
     - Ticket booking: 10,000 coins per passenger
     - Travel document: 10,000 coins per document
 
-    ## Payment Proof Flow (New)
+    ## Payment Proof Flow
     Customer uploads payment proof → Admin reviews → Approve creates ticket automatically
+
+    ## OTP Registration Flow
+    1. Send OTP to phone number (`POST /otp/send`)
+    2. Verify OTP code (`POST /otp/verify`)
+    3. Register with verified phone (`POST /auth/register`)
 
   version: 2.0.0
   contact:
@@ -41,6 +49,8 @@ servers:
     description: Production
 
 tags:
+  - name: OTP Verification
+    description: OTP verification via WhatsApp using Twilio
   - name: Authentication
     description: User authentication and authorization
   - name: Admins
@@ -90,6 +100,17 @@ components:
       type: string
       enum: [MALE, FEMALE, OTHER]
       description: User gender
+
+    # OTP System
+    OtpType:
+      type: string
+      enum: [REGISTRATION, PASSWORD_RESET, PHONE_VERIFICATION]
+      description: Type of OTP verification
+
+    OtpStatus:
+      type: string
+      enum: [PENDING, VERIFIED, EXPIRED, FAILED]
+      description: Status of OTP verification
 
     # Coin System
     CoinRequestStatus:
@@ -173,6 +194,132 @@ components:
           example: 10
 
 paths:
+  # ==================== OTP VERIFICATION ====================
+  /otp/send:
+    post:
+      tags: [OTP Verification]
+      summary: Send OTP via WhatsApp
+      description: |
+        Send a 6-digit OTP code to the specified phone number via WhatsApp using Twilio.
+
+        **Features:**
+        - OTP valid for 5 minutes
+        - Rate limiting: Maximum 1 OTP per 4 minutes
+        - Automatically expires old OTP when sending new one
+
+        **Requirements:**
+        - Valid Indonesian phone number
+        - Twilio credentials configured in environment variables
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: "081234567890"
+                  description: Indonesian phone number (will be normalized to +62 format)
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP sent successfully to your WhatsApp"
+                  expiresIn:
+                    type: integer
+                    example: 300
+                    description: OTP expiry time in seconds (5 minutes)
+                  phone:
+                    type: string
+                    example: "081234567890"
+        '400':
+          description: Bad request - Invalid phone number or OTP already sent recently
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "OTP already sent. Please wait 240 seconds before requesting a new one."
+
+  /otp/verify:
+    post:
+      tags: [OTP Verification]
+      summary: Verify OTP code
+      description: |
+        Verify the OTP code sent to the phone number.
+
+        **Features:**
+        - Maximum 3 verification attempts
+        - OTP must be verified within 5 minutes
+        - Verified status remains valid for 30 minutes
+
+        **Important:**
+        - Phone number must be verified with OTP before registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone:
+                  type: string
+                  pattern: '^(\+62|62|0)[0-9]{9,12}$'
+                  example: "081234567890"
+                  description: Phone number that received the OTP
+                code:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                  minLength: 6
+                  maxLength: 6
+                  example: "123456"
+                  description: 6-digit OTP code
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "OTP verified successfully"
+                  verified:
+                    type: boolean
+                    example: true
+                  phone:
+                    type: string
+                    example: "081234567890"
+        '400':
+          description: Bad request - Invalid OTP, expired, or max attempts exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Invalid OTP code. 2 attempts remaining."
+
   # ==================== AUTHENTICATION ====================
   /auth/login:
     post:
@@ -244,7 +391,19 @@ paths:
     post:
       tags: [Authentication]
       summary: Customer registration
-      description: Register new customer account with phone number
+      description: |
+        Register new customer account with phone number.
+
+        **IMPORTANT: OTP Verification Required**
+        - Phone number must be verified with OTP before registration
+        - Send OTP via `/otp/send` endpoint
+        - Verify OTP via `/otp/verify` endpoint
+        - Registration will fail if phone number is not verified (within 30 minutes of verification)
+
+        **Registration Flow:**
+        1. Send OTP to phone number
+        2. Verify OTP code
+        3. Register with verified phone number (within 30 minutes)
       requestBody:
         required: true
         content:
@@ -321,6 +480,19 @@ paths:
                             type: string
                           phone:
                             type: string
+        '400':
+          description: Bad request - Phone number not verified with OTP
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "Phone number not verified. Please verify your phone number with OTP first."
         '409':
           description: Phone number or email already exists
           content:
