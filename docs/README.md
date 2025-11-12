@@ -22,6 +22,19 @@ Customer registration sekarang dilindungi dengan sistem verifikasi OTP via Whats
 - `POST /otp/verify` - Verify OTP code
 - `POST /auth/register` - Register (requires OTP verification first)
 
+**Testing & Troubleshooting:**
+```bash
+# Test Twilio credentials dan koneksi
+node scripts/test-twilio.js
+
+# Test send WhatsApp message
+node scripts/test-twilio.js +6281234567890
+```
+
+📖 **Setup Guide**: Lihat [OTP_SETUP_GUIDE.md](./OTP_SETUP_GUIDE.md) untuk instruksi lengkap setup Twilio dan troubleshooting.
+
+**📖 [Setup Guide & Troubleshooting](./OTP_SETUP_GUIDE.md)**
+
 ### API Documentation v2.0.0
 Dokumentasi API telah diupdate dari v1.0.0 ke v2.0.0 dengan penambahan **55 endpoint baru**. Sekarang **106 endpoints** telah terdokumentasi lengkap (sebelumnya hanya 49).
 

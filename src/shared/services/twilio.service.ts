@@ -37,6 +37,8 @@ export class TwilioService {
         return { success: false, error: 'Twilio service not configured' };
       }
 
+      this.logger.log(`Attempting to send OTP to ${normalizedPhone} via WhatsApp`);
+
       // Template pesan OTP
       const message = `Kode OTP Anda adalah: ${otpCode}\n\nKode ini berlaku selama 5 menit.\nJangan bagikan kode ini kepada siapapun.\n\nMobile Travel App`;
 
@@ -54,10 +56,35 @@ export class TwilioService {
         messageSid: response.sid,
       };
     } catch (error) {
-      this.logger.error(`Failed to send WhatsApp OTP to ${phone}:`, error.message);
+      // Enhanced error logging
+      const errorMessage = error.message || 'Unknown error';
+      const errorCode = error.code || 'NO_CODE';
+      const errorStatus = error.status || 'NO_STATUS';
+
+      this.logger.error(
+        `Failed to send WhatsApp OTP to ${phone}:\n` +
+        `  Error: ${errorMessage}\n` +
+        `  Code: ${errorCode}\n` +
+        `  Status: ${errorStatus}\n` +
+        `  Details: ${JSON.stringify(error, null, 2)}`
+      );
+
+      // Provide user-friendly error messages based on error type
+      let userMessage = 'Failed to send OTP via WhatsApp. Please try again later.';
+
+      if (errorMessage.includes('Authenticate') || errorCode === 20003) {
+        userMessage = 'Twilio authentication failed. Please check credentials configuration.';
+        this.logger.error('TWILIO AUTH ERROR: Invalid Account SID or Auth Token. Please verify credentials in .env file.');
+      } else if (errorMessage.includes('not a valid phone number') || errorCode === 21211) {
+        userMessage = 'Invalid phone number format. Please check the number and try again.';
+      } else if (errorMessage.includes('Sandbox') || errorMessage.includes('not authorized')) {
+        userMessage = 'Phone number not authorized in Twilio Sandbox. Please join the sandbox first.';
+        this.logger.error(`SANDBOX ERROR: Phone ${phone} needs to join Twilio WhatsApp Sandbox. Send "join <code>" to +14155238886`);
+      }
+
       return {
         success: false,
-        error: error.message || 'Failed to send OTP via WhatsApp',
+        error: userMessage,
       };
     }
   }
