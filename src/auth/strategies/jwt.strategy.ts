@@ -61,6 +61,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     // Return user object that will be attached to request
     return {
       id: user.id,
+      userId: user.id, // Alias for id (used by @CurrentUser('userId'))
       phone: user.phone,
       email: user.email,
       role: user.role,
