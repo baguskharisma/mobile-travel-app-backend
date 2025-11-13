@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AppController } from './app.controller';
@@ -105,6 +105,19 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
         transform: true, // Automatically transform payloads to DTO instances
         transformOptions: {
           enableImplicitConversion: true, // Allow implicit type conversion
+        },
+        exceptionFactory: (errors) => {
+          const messages = errors.map((error) => {
+            const constraints = error.constraints
+              ? Object.values(error.constraints).join(', ')
+              : 'Invalid value';
+            return `${error.property}: ${constraints}`;
+          });
+          return new BadRequestException({
+            statusCode: 400,
+            message: 'Validation failed',
+            errors: messages,
+          });
         },
       }),
     },
