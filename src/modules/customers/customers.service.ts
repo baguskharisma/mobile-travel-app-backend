@@ -137,25 +137,60 @@ export class CustomersService {
       }
     }
 
-    // Prepare update data
-    const customerUpdateData: any = { ...updateCustomerDto };
-    if (updateCustomerDto.birthDate) {
-      customerUpdateData.birthDate = new Date(updateCustomerDto.birthDate);
+    // Check if email is already taken by another user
+    if (updateCustomerDto.email) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: updateCustomerDto.email },
+      });
+
+      if (existingUser && existingUser.id !== customer.userId) {
+        throw new ConflictException('Email already exists');
+      }
     }
 
-    const updatedCustomer = await this.prisma.customer.update({
-      where: { id },
-      data: customerUpdateData,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            status: true,
-            createdAt: true,
+    // Prepare update data for customer table
+    const customerUpdateData: any = {};
+    if (updateCustomerDto.name !== undefined) customerUpdateData.name = updateCustomerDto.name;
+    if (updateCustomerDto.phone !== undefined) customerUpdateData.phone = updateCustomerDto.phone;
+    if (updateCustomerDto.address !== undefined) customerUpdateData.address = updateCustomerDto.address;
+    if (updateCustomerDto.gender !== undefined) customerUpdateData.gender = updateCustomerDto.gender;
+    if (updateCustomerDto.birthDate !== undefined) {
+      customerUpdateData.birthDate = updateCustomerDto.birthDate ? new Date(updateCustomerDto.birthDate) : null;
+    }
+
+    // Prepare update data for user table
+    const userUpdateData: any = {};
+    if (updateCustomerDto.email !== undefined) userUpdateData.email = updateCustomerDto.email;
+    if (updateCustomerDto.birthDate !== undefined) {
+      userUpdateData.birthDate = updateCustomerDto.birthDate ? new Date(updateCustomerDto.birthDate) : null;
+    }
+    if (updateCustomerDto.gender !== undefined) userUpdateData.gender = updateCustomerDto.gender;
+
+    // Update both customer and user in a transaction
+    const updatedCustomer = await this.prisma.$transaction(async (prisma) => {
+      // Update user table if there are fields to update
+      if (Object.keys(userUpdateData).length > 0) {
+        await prisma.user.update({
+          where: { id: customer.userId },
+          data: userUpdateData,
+        });
+      }
+
+      // Update customer table
+      return prisma.customer.update({
+        where: { id },
+        data: customerUpdateData,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              status: true,
+              createdAt: true,
+            },
           },
         },
-      },
+      });
     });
 
     return updatedCustomer;

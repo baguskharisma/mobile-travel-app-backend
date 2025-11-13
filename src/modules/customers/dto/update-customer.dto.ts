@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength, Matches, IsDateString, IsEnum } from 'class-validator';
+import { IsString, IsOptional, MinLength, Matches, IsDateString, IsEnum, IsEmail } from 'class-validator';
 import { Gender } from '@prisma/client';
 
 export class UpdateCustomerDto {
@@ -6,6 +6,11 @@ export class UpdateCustomerDto {
   @IsString()
   @MinLength(3, { message: 'Name must be at least 3 characters long' })
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsEmail({}, { message: 'Email must be a valid email address' })
+  email?: string;
 
   @IsOptional()
   @IsString()
