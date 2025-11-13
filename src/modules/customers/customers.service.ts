@@ -166,6 +166,15 @@ export class CustomersService {
     }
     if (updateCustomerDto.gender !== undefined) userUpdateData.gender = updateCustomerDto.gender;
 
+    // Debug logging
+    console.log('=== UPDATE CUSTOMER DEBUG ===');
+    console.log('Customer ID:', id);
+    console.log('Customer userId:', customer.userId);
+    console.log('Update DTO:', JSON.stringify(updateCustomerDto, null, 2));
+    console.log('Customer Update Data:', JSON.stringify(customerUpdateData, null, 2));
+    console.log('User Update Data:', JSON.stringify(userUpdateData, null, 2));
+    console.log('===========================');
+
     // Update both customer and user in a transaction
     const updatedCustomer = await this.prisma.$transaction(async (prisma) => {
       // Update user table if there are fields to update
@@ -176,10 +185,17 @@ export class CustomersService {
         });
       }
 
-      // Update customer table
-      return prisma.customer.update({
+      // Update customer table only if there are fields to update
+      if (Object.keys(customerUpdateData).length > 0) {
+        await prisma.customer.update({
+          where: { id },
+          data: customerUpdateData,
+        });
+      }
+
+      // Fetch and return updated customer with user data
+      return prisma.customer.findUnique({
         where: { id },
-        data: customerUpdateData,
         include: {
           user: {
             select: {

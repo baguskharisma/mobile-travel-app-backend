@@ -68,6 +68,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status = HttpStatus.BAD_REQUEST;
       error = 'Validation Error';
       message = 'Invalid data provided';
+
+      // Log detailed Prisma validation error for debugging
+      this.logger.error(
+        `Prisma Validation Error: ${exception.message}`,
+        exception.stack,
+        `${request.method} ${request.url}`,
+      );
     }
     // Handle unknown errors
     else if (exception instanceof Error) {
