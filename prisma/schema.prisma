@@ -387,6 +387,7 @@ model PaymentProof {
   proofNumber     String             @unique // Nomor unik bukti pembayaran
   scheduleId      String // Schedule yang akan dipesan
   customerId      String // Customer yang upload
+  bookingSource   BookingSource      @default(CUSTOMER_APP) // Sumber booking
   bookerPhone     String // Nomor HP pemesan
   pickupAddress   String // Alamat jemput
   dropoffAddress  String // Alamat antar

@@ -207,6 +207,7 @@ export class PaymentProofsService {
         proofNumber,
         scheduleId: createDto.scheduleId,
         customerId: customer.id,
+        bookingSource: createDto.bookingSource || BookingSource.CUSTOMER_APP,
         bookerPhone: createDto.bookerPhone,
         pickupAddress: createDto.pickupAddress,
         dropoffAddress: createDto.dropoffAddress,

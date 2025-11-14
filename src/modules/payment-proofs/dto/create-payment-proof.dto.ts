@@ -6,14 +6,20 @@ import {
   ValidateNested,
   ArrayMinSize,
   Matches,
+  IsEnum,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { PaymentProofPassengerDto } from './passenger.dto';
+import { BookingSource } from '@prisma/client';
 
 export class CreatePaymentProofDto {
   @IsString()
   @IsNotEmpty()
   scheduleId: string;
+
+  @IsOptional()
+  @IsEnum(BookingSource)
+  bookingSource?: BookingSource;
 
   @IsString()
   @IsNotEmpty({ message: 'Booker phone number is required' })
