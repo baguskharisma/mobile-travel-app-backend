@@ -19,6 +19,7 @@ async function main() {
       email: 'superadmin@travelapp.com',
       password: hashedPassword,
       role: 'SUPER_ADMIN',
+      birthDate: "25-01-2003",
       status: 'ACTIVE',
       admin: {
         create: {
@@ -37,6 +38,7 @@ async function main() {
       email: 'admin@travelapp.com',
       password: hashedPassword,
       role: 'ADMIN',
+      birthDate: "25-01-2003",
       status: 'ACTIVE',
       admin: {
         create: {
@@ -55,6 +57,7 @@ async function main() {
       email: 'driver1@travelapp.com',
       password: hashedPassword,
       role: 'DRIVER',
+      birthDate: "25-01-2003",
       status: 'ACTIVE',
       driver: {
         create: {
@@ -74,6 +77,7 @@ async function main() {
       email: 'driver2@travelapp.com',
       password: hashedPassword,
       role: 'DRIVER',
+      birthDate: "25-01-2003",
       status: 'ACTIVE',
       driver: {
         create: {
@@ -93,6 +97,7 @@ async function main() {
       email: 'driver3@travelapp.com',
       password: hashedPassword,
       role: 'DRIVER',
+      birthDate: "25-01-2003",
       status: 'ACTIVE',
       driver: {
         create: {
@@ -113,6 +118,7 @@ async function main() {
       email: 'customer1@gmail.com',
       password: hashedPassword,
       role: 'CUSTOMER',
+      birthDate: "25-01-2003",
       status: 'ACTIVE',
       customer: {
         create: {
@@ -130,6 +136,7 @@ async function main() {
       email: 'customer2@gmail.com',
       password: hashedPassword,
       role: 'CUSTOMER',
+      birthDate: "25-01-2003",
       status: 'ACTIVE',
       customer: {
         create: {
