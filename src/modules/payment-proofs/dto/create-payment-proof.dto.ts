@@ -40,7 +40,12 @@ export class CreatePaymentProofDto {
     // If passengers comes as JSON string from multipart form-data, parse it
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value);
+        const parsed = JSON.parse(value);
+        // Convert each passenger to PaymentProofPassengerDto instance
+        if (Array.isArray(parsed)) {
+          return parsed.map(p => Object.assign(new PaymentProofPassengerDto(), p));
+        }
+        return parsed;
       } catch (error) {
         return value; // Let validator handle the error
       }
