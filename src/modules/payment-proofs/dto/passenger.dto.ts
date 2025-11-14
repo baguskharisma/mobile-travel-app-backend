@@ -21,7 +21,7 @@ export class PaymentProofPassengerDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^(\+62|62|0)[0-9]{9,12}$/, {
+  @Matches(/^(\+62|62|0)8[0-9]{8,12}$/, {
     message: 'Phone must be a valid Indonesian phone number',
   })
   phone?: string;

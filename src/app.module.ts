@@ -107,6 +107,10 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
           enableImplicitConversion: true, // Allow implicit type conversion
         },
         exceptionFactory: (errors) => {
+          console.log('=== VALIDATION ERRORS ===');
+          console.log(JSON.stringify(errors, null, 2));
+          console.log('========================');
+
           const messages = errors.map((error) => {
             const constraints = error.constraints
               ? Object.values(error.constraints).join(', ')

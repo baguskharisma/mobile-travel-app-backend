@@ -23,7 +23,7 @@ export class CreatePaymentProofDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Booker phone number is required' })
-  @Matches(/^(\+62|62|0)?8[0-9]{8,11}$/, {
+  @Matches(/^(\+62|62|0)8[0-9]{8,12}$/, {
     message: 'Booker phone must be a valid Indonesian phone number',
   })
   bookerPhone: string;
