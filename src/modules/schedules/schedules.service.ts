@@ -829,4 +829,46 @@ export class SchedulesService {
       message: 'Schedule deleted successfully',
     };
   }
+
+  /**
+   * Get list of booked seat numbers for a schedule
+   * Includes seats from PaymentProof with status PENDING or APPROVED
+   * Excludes seats from PaymentProof with status REJECTED
+   */
+  async getBookedSeats(scheduleId: string) {
+    // Get all payment proof passengers for this schedule with PENDING or APPROVED status
+    const passengers = await this.prisma.paymentProofPassenger.findMany({
+      where: {
+        paymentProof: {
+          scheduleId,
+          status: {
+            in: ['PENDING', 'APPROVED'],
+          },
+        },
+        seatNumber: {
+          not: null,
+        },
+      },
+      select: {
+        seatNumber: true,
+      },
+    });
+
+    // Extract seat numbers, convert to integers, remove duplicates, and sort
+    const seatNumbers = passengers
+      .map((p) => p.seatNumber)
+      .filter((seat): seat is string => seat !== null)
+      .map((seat) => {
+        const num = parseInt(seat, 10);
+        return isNaN(num) ? null : num;
+      })
+      .filter((num): num is number => num !== null);
+
+    // Remove duplicates using Set and sort ascending
+    const uniqueSortedSeats = Array.from(new Set(seatNumbers)).sort((a, b) => a - b);
+
+    return {
+      bookedSeats: uniqueSortedSeats,
+    };
+  }
 }

@@ -16,9 +16,11 @@ import {
   UpdateScheduleDto,
   AssignDriverDto,
   QuerySchedulesDto,
+  BookedSeatsResponseDto,
 } from './dto';
 import { Roles } from '../../auth/decorators';
 import { UserRole } from '@prisma/client';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('schedules')
 export class SchedulesController {
@@ -47,6 +49,21 @@ export class SchedulesController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.CUSTOMER)
   findOne(@Param('id') id: string) {
     return this.schedulesService.findOne(id);
+  }
+
+  @Get(':id/booked-seats')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get booked seats for a schedule',
+    description: 'Returns list of seat numbers that are already booked (PENDING or APPROVED payment proofs only)'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of booked seat numbers',
+    type: BookedSeatsResponseDto
+  })
+  getBookedSeats(@Param('id') id: string): Promise<BookedSeatsResponseDto> {
+    return this.schedulesService.getBookedSeats(id);
   }
 
   @Patch(':id')
