@@ -378,6 +378,7 @@ model Passenger {
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
+  @@index([seatNumber]) // For seat conflict checking
 }
 
 // ==================== PAYMENT PROOF ====================
@@ -420,6 +421,7 @@ model PaymentProof {
   @@index([status])
   @@index([createdAt])
   @@index([reviewedBy])
+  @@index([scheduleId, status]) // Composite index for booked seats query optimization
 }
 
 model PaymentProofPassenger {
@@ -436,6 +438,7 @@ model PaymentProofPassenger {
   paymentProof PaymentProof @relation(fields: [paymentProofId], references: [id], onDelete: Cascade)
 
   @@index([paymentProofId])
+  @@index([seatNumber]) // For seat conflict checking and booked seats query
 }
 
 // ==================== TRAVEL DOCUMENT (SURAT JALAN) ====================

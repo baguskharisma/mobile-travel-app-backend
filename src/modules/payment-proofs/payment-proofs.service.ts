@@ -131,10 +131,30 @@ export class PaymentProofsService {
       .filter((s) => s);
 
     if (seatNumbers.length > 0) {
+      // Check for duplicates
       const uniqueSeats = new Set(seatNumbers);
       if (uniqueSeats.size !== seatNumbers.length) {
         throw new BadRequestException(
           'Duplicate seat numbers are not allowed within the same booking',
+        );
+      }
+
+      // Validate that selected seats count doesn't exceed available seats
+      if (seatNumbers.length > schedule.availableSeats) {
+        throw new BadRequestException(
+          `Cannot select ${seatNumbers.length} seats. Only ${schedule.availableSeats} seats available`,
+        );
+      }
+
+      // Validate seat numbers are within vehicle capacity range
+      const invalidSeats = seatNumbers.filter((seat) => {
+        const seatNum = parseInt(seat!, 10);
+        return isNaN(seatNum) || seatNum < 1 || seatNum > schedule.vehicle.capacity;
+      });
+
+      if (invalidSeats.length > 0) {
+        throw new BadRequestException(
+          `Invalid seat numbers: ${invalidSeats.join(', ')}. Seats must be between 1 and ${schedule.vehicle.capacity}`,
         );
       }
 
@@ -201,34 +221,49 @@ export class PaymentProofsService {
     // Generate proof number
     const proofNumber = await this.generateProofNumber();
 
-    // Create payment proof with passengers
-    const paymentProof = await this.prisma.paymentProof.create({
-      data: {
-        proofNumber,
-        scheduleId: createDto.scheduleId,
-        customerId: customer.id,
-        bookingSource: createDto.bookingSource || BookingSource.CUSTOMER_APP,
-        bookerPhone: createDto.bookerPhone,
-        pickupAddress: createDto.pickupAddress,
-        dropoffAddress: createDto.dropoffAddress,
-        totalPassengers: passengerCount,
-        totalPrice,
-        paymentProofUrl,
-        notes: createDto.notes,
-        passengers: {
-          create: createDto.passengers,
-        },
-      },
-      include: {
-        passengers: true,
-        schedule: {
-          include: {
-            route: true,
-            vehicle: true,
+    // Create payment proof with passengers and decrease available seats
+    const paymentProof = await this.prisma.$transaction(async (tx) => {
+      // Create payment proof
+      const proof = await tx.paymentProof.create({
+        data: {
+          proofNumber,
+          scheduleId: createDto.scheduleId,
+          customerId: customer.id,
+          bookingSource: createDto.bookingSource || BookingSource.CUSTOMER_APP,
+          bookerPhone: createDto.bookerPhone,
+          pickupAddress: createDto.pickupAddress,
+          dropoffAddress: createDto.dropoffAddress,
+          totalPassengers: passengerCount,
+          totalPrice,
+          paymentProofUrl,
+          notes: createDto.notes,
+          passengers: {
+            create: createDto.passengers,
           },
         },
-        customer: true,
-      },
+        include: {
+          passengers: true,
+          schedule: {
+            include: {
+              route: true,
+              vehicle: true,
+            },
+          },
+          customer: true,
+        },
+      });
+
+      // Decrease available seats immediately when payment proof is created
+      await tx.schedule.update({
+        where: { id: createDto.scheduleId },
+        data: {
+          availableSeats: {
+            decrement: passengerCount,
+          },
+        },
+      });
+
+      return proof;
     });
 
     return paymentProof;
@@ -430,15 +465,8 @@ export class PaymentProofsService {
         },
       });
 
-      // Update schedule available seats
-      await tx.schedule.update({
-        where: { id: paymentProof.scheduleId },
-        data: {
-          availableSeats: {
-            decrement: paymentProof.totalPassengers,
-          },
-        },
-      });
+      // Note: availableSeats was already decremented when payment proof was created
+      // No need to decrement again here
 
       // Deduct coins from admin
       await this.coinTransactionService.deductCoins(
@@ -517,24 +545,40 @@ export class PaymentProofsService {
       );
     }
 
-    const updatedProof = await this.prisma.paymentProof.update({
-      where: { id },
-      data: {
-        status: PaymentProofStatus.REJECTED,
-        reviewedBy: adminUserId,
-        reviewedAt: new Date(),
-        rejectionReason: rejectDto.rejectionReason,
-      },
-      include: {
-        passengers: true,
-        schedule: {
-          include: {
-            route: true,
-            vehicle: true,
+    // Reject payment proof and restore available seats in transaction
+    const updatedProof = await this.prisma.$transaction(async (tx) => {
+      // Update payment proof status
+      const proof = await tx.paymentProof.update({
+        where: { id },
+        data: {
+          status: PaymentProofStatus.REJECTED,
+          reviewedBy: adminUserId,
+          reviewedAt: new Date(),
+          rejectionReason: rejectDto.rejectionReason,
+        },
+        include: {
+          passengers: true,
+          schedule: {
+            include: {
+              route: true,
+              vehicle: true,
+            },
+          },
+          customer: true,
+        },
+      });
+
+      // Restore available seats (increment back)
+      await tx.schedule.update({
+        where: { id: paymentProof.scheduleId },
+        data: {
+          availableSeats: {
+            increment: paymentProof.totalPassengers,
           },
         },
-        customer: true,
-      },
+      });
+
+      return proof;
     });
 
     return updatedProof;
@@ -574,8 +618,25 @@ export class PaymentProofsService {
       );
     }
 
-    await this.prisma.paymentProof.delete({
-      where: { id },
+    // Delete payment proof and restore available seats if status was PENDING
+    await this.prisma.$transaction(async (tx) => {
+      // Delete the payment proof
+      await tx.paymentProof.delete({
+        where: { id },
+      });
+
+      // Restore available seats only if the payment proof was PENDING
+      // (REJECTED proofs already had their seats restored)
+      if (paymentProof.status === PaymentProofStatus.PENDING) {
+        await tx.schedule.update({
+          where: { id: paymentProof.scheduleId },
+          data: {
+            availableSeats: {
+              increment: paymentProof.totalPassengers,
+            },
+          },
+        });
+      }
     });
 
     return { message: 'Payment proof deleted successfully' };
