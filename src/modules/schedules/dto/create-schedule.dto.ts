@@ -34,10 +34,10 @@ export class CreateScheduleDto {
   @Min(0, { message: 'Price must be at least 0' })
   price: number;
 
+  @IsOptional()
   @IsInt()
-  @IsNotEmpty()
   @Min(1, { message: 'Available seats must be at least 1' })
-  availableSeats: number;
+  availableSeats?: number;
 
   @IsOptional()
   @IsNumber()

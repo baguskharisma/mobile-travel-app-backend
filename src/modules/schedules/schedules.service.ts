@@ -230,10 +230,13 @@ export class SchedulesService {
       throw new NotFoundException('Vehicle not found');
     }
 
+    // Auto-set availableSeats from vehicle capacity if not provided
+    const availableSeats = createScheduleDto.availableSeats ?? vehicle.capacity;
+
     // Ensure available seats don't exceed vehicle capacity
-    if (createScheduleDto.availableSeats > vehicle.capacity) {
+    if (availableSeats > vehicle.capacity) {
       throw new BadRequestException(
-        `Available seats (${createScheduleDto.availableSeats}) cannot exceed vehicle capacity (${vehicle.capacity})`,
+        `Available seats (${availableSeats}) cannot exceed vehicle capacity (${vehicle.capacity})`,
       );
     }
 
@@ -277,7 +280,7 @@ export class SchedulesService {
         departureTime,
         arrivalTime,
         price: createScheduleDto.price,
-        availableSeats: createScheduleDto.availableSeats,
+        availableSeats,
         fuelCost: createScheduleDto.fuelCost,
         driverWage: createScheduleDto.driverWage,
         snackCost: createScheduleDto.snackCost,
